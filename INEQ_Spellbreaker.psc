@@ -2,37 +2,27 @@ Scriptname INEQ_Spellbreaker extends INEQ_AbilityBaseShield
 {Attached to the ability's magic effect}
 
 ;===========================================  Properties  ===========================================================================>
-Spell property abSpellbreaker auto
+Spell	Property	abSpellbreaker	Auto
 
-String  Property  BlockStop  = 	"blockStop"  	Autoreadonly			; stop blocking
-String  Property  BlockStart  =  "blockStartOut"  	Autoreadonly		; start blocking
+;==========================================  Autoreadonly  ==========================================================================>
+String	Property	BlockStop	=	"blockStop"			Autoreadonly		; stop blocking
+String	Property	BlockStart	=	"blockStartOut"		Autoreadonly		; start blocking
 
 ;===========================================  Variables  ============================================================================>
-ObjectReference EquipRef
+
 
 ;===============================================================================================================================
-;====================================		    Start/Finish			================================================
+;====================================	    Maintenance			================================================
 ;================================================================================================
 
 Event OnEffectFinish (Actor akTarget, Actor akCaster)
-	UnregisterForAnimationEvent(selfRef, BlockStop)
-	UnregisterForAnimationEvent(selfRef, BlockStart)
 	SelfRef.removespell(abSpellbreaker)
+	parent.EffectFinish(akTarget, akCaster)
 EndEvent
 
 ;===============================================================================================================================
 ;====================================			States			================================================
 ;================================================================================================
-
-;State Unequipped
-	
-;	Event OnBeginState()
-;		Debug.Notification("Enter Unequip")
-;	EndEvent
-
-;EndState
-
-;___________________________________________________________________________________________________________________________
 
 State Equipped
 	
@@ -76,30 +66,3 @@ State Blocking
 	EndEvent
 
 EndState
-
-;===============================================================================================================================
-;====================================		   Functions		================================================
-;================================================================================================
-
-;Function EquipCheckKW(ObjectReference akReference)
-;	Debug.Notification("SB-EquipEvent: ShieldRef:" +SelfRef.GetEquippedShield().getFormID()+ ", EquipRef:" +EquipRef.GetBaseObject().GetFormID())
-;	
-;	if akReference.HasKeyword(KW_EnbaleAbility)
-;		EquipRef = akReference
-;		GoToState("Equipped")
-;	elseif SelfRef.GetEquippedShield() && SelfRef.GetEquippedShield() == (EquipRef.GetBaseObject() as Armor)
-;		GoToState("Equipped")
-;		;check for kw
-;		Debug.Notification("Old shield equipped. HasKW: " +SelfRef.GetEquippedShield().HasKeyword(KW_EnbaleAbility))
-;	endif
-;EndFunction
-
-;___________________________________________________________________________________________________________________________
-
-;Function UnequipCheck(ObjectReference akReference)
-;		if (akReference == EquipRef)
-;			Debug.Notification("SB: Unequipped")
-;			;EquipRef = none
-;			GoToState("Unequipped")
-;		endif
-;EndFunction

@@ -2,24 +2,25 @@ Scriptname INEQ_Waterwalking extends INEQ_AbilityBase
 {Attached to the ability's magic effect}
 
 ;===========================================  Properties  ===========================================================================>
-Spell property abWaterwalking auto
+Spell	Property	abWaterwalking	Auto
+
+;==========================================  Autoreadonly  ==========================================================================>
+float	Property	LookDownThreshold	=	80.0	Autoreadonly
 
 String  Property  AnimWalking1  =  "FootRight"  Autoreadonly			; any movement with left foot
 String  Property  AnimWalking2  =  "FootLeft"	Autoreadonly			; any movement with right foot
 String  Property  AnimJump  	=  "JumpUp"  	Autoreadonly			; jumping up animation
 
 ;===========================================  Variables  ============================================================================>
-ObjectReference EquipRef
+
 
 ;===============================================================================================================================
-;====================================	    Start/Finish		================================================
+;====================================	    Maintenance			================================================
 ;================================================================================================
 
 Event OnEffectFinish (Actor akTarget, Actor akCaster)
-	UnregisterForAnimationEvent(selfRef, AnimWalking1)
-	UnregisterForAnimationEvent(selfRef, AnimWalking2)
-	UnregisterForAnimationEvent(selfRef, AnimJump)
 	SelfRef.removespell(abWaterwalking)
+	parent.EffectFinish(akTarget, akCaster)
 EndEvent
 
 ;===============================================================================================================================
@@ -33,6 +34,7 @@ State Unequipped
 	EndEvent
 	
 EndState
+
 ;___________________________________________________________________________________________________________________________
 
 State Equipped
@@ -59,14 +61,14 @@ EndState
 State Waterwalking
 
 	Event OnBeginState()
-		SelfRef.addspell(abWaterwalking, false)						;SelfRef.setActorValue("waterwalking", 1)
+		SelfRef.addspell(abWaterwalking, false)
 		RegisterForAnimationEvent(selfRef, AnimWalking1)				
 		RegisterForAnimationEvent(selfRef, AnimWalking2)				
 	EndEvent
 
 	; By sneaking and looking down you can enter the water
 	Event OnAnimationEvent(ObjectReference akSource, string EventName)
-		if  (selfRef.getAngleX() > 80 ) && (akSource == selfRef) &&( ( EventName == AnimWalking1) || ( EventName == AnimWalking2) )
+		if  (SelfRef.getAngleX() > LookDownThreshold) && (akSource == selfRef) &&( (EventName == AnimWalking1) || ( EventName == AnimWalking2) )
 			GoToState("Equipped")
 		endif
 	EndEvent

@@ -20,16 +20,14 @@ float	Property	ChargeMagickaMP =	50.0	Auto	Hidden
 int		Property	ChargeMagickaPR =	50		Auto	Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
-
 int		Property	DEFChargeMode		=	0		Autoreadonly
 int		Property	DEFMaxLocalCharge	=	4		Autoreadonly
 int		Property	DEFChargeCost		=	2		Autoreadonly
-float	Property	DEFChargeDistance	=	5000.0	Autoreadonly
-float	Property	DEFChargeMagickaMP	=	2000.0	Autoreadonly
+float	Property	DEFChargeDistance	=	2000.0	Autoreadonly
+float	Property	DEFChargeMagickaMP	=	1000.0	Autoreadonly
 int		Property	DEFChargeMagickaPR	=	50		Autoreadonly
 
-
-String  Property WeaponSwing  = 	"weaponSwing"  					Autoreadonly	; weapon attack
+String  Property WeaponSwing	=	"weaponSwing"  					Autoreadonly
 String	Property PWStanding2H	= 	"AttackPowerStanding_FXstart"	Autoreadonly
 String	Property PWRight2H		= 	"AttackPowerRight_FXstart"		Autoreadonly
 String	Property PWLeft2H		= 	"AttackPowerLeft_FXstart"		Autoreadonly
@@ -37,46 +35,39 @@ String	Property PWForward2H	= 	"AttackPowerForward_FXstart"	Autoreadonly
 String	Property PWBackward2H	= 	"AttackPowerBackward_FXstart"	Autoreadonly
 
 ;===========================================  Variables  ============================================================================>
-;ObjectReference EquipRef
-
 INEQ_SharedCharges SharedCharges
 
 ;===============================================================================================================================
-;====================================		  Start/Finish		================================================
+;====================================	    Maintenance			================================================
 ;================================================================================================
 
 Event OnEffectStart(Actor akTarget, Actor akCaster)
+	parent.EffectStart(akTarget, akCaster)
 	SharedCharges = SharedChargesAlias as INEQ_SharedCharges
 	RegisterAbilityToAlias()
-	RestoreDefaultFields()
-EndEvent
-
-Event OnEffectFinish (Actor akTarget, Actor akCaster)
-	UnregisterForDistanceTravelledEvent()
-	UnregisterForMagickaSiphonEvent()
-	UnregisterAbilityToAlias()
-	unregisterForAnimationEvent(SelfRef, PWStanding2H)
-	unregisterForAnimationEvent(SelfRef, PWRight2H)
-	unregisterForAnimationEvent(SelfRef, PWLeft2H)
-	unregisterForAnimationEvent(SelfRef, PWBackward2H)
-	unregisterForAnimationEvent(SelfRef, PWForward2H)
-	UnregisterForAnimationEvent(selfRef, WeaponSwing)
-EndEvent
-
-Function RestoreDefaultFields()
+	;RestoreDefaultFields()
 	MaxLocalCharge	=	DEFMaxLocalCharge
-	LocalCharge		=	0
-EndFunction
+EndEvent
 
-Event OnPlayerLoad()
+Event OnPlayerLoadGame()
+	parent.PlayerLoadGame()
 	Maintenance()
 EndEvent
 
 Function Maintenance()
 	parent.Maintenance()
-	;RegisterForDistanceTravelledEvent(ChargeDistance)
-	;RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR)
 	RegisterForRecharge()
+EndFunction
+
+Function RestoreDefaultFields()
+	bUseCharges		=	True
+	bBalanced		=	True
+	LocalCharge		=	0
+	MaxLocalCharge	=	DEFMaxLocalCharge
+	ChargeCost		=	DEFChargeCost
+	ChargeDistance	=	DEFChargeDistance
+	ChargeMagickaMP	=	DEFChargeMagickaMP
+	ChargeMagickaPR	=	DEFChargeMagickaPR
 EndFunction
 
 ;===============================================================================================================================
@@ -94,8 +85,6 @@ State Equipped
 		elseif itemType > 0 && itemType < 5
 			GoToState("Equipped1H")
 		endif
-		;RegisterForDistanceTravelledEvent(ChargeDistance)
-		;RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR)
 		RegisterForRecharge()
 	EndEvent
 
@@ -203,19 +192,23 @@ EndState
 ;====================================			Functions			================================================
 ;================================================================================================
 
-; Returs whether the necessary charges were obtained
+; Returns whether the necessary charges were obtained
 bool function hasCharge()
-	Debug.Trace("BLOODSKAL: HASCHARGE() ACCESSED")
-	if ChargeMode == 0		;shared priority
-		; Attempts to use both from shared first if available
-		; else uses last from shared and a charge from local if available
-		; else attempts to use both from local
-		return SharedCharges.requestCharge(ChargeCost) || (LocalCharge > 0 && SharedCharges.requestCharge(1) && removeLocalCharge(1)) || removeLocalCharge(ChargeCost)
-	elseif ChargeMode == 1	;local priority
+	if ChargeMode == 0		; shared priority
+		int shared = SharedCharges.getCharge()
+		if shared >= ChargeCost						; Attempts to use charges from shared first if available
+			return SharedCharges.requestCharge(ChargeCost)
+		elseif shared + LocalCharge >= ChargeCost
+			SharedCharges.requestCharge(shared)		; else uses remaining shared charges
+			removeLocalCharge(ChargeCost - shared)	; and use local charges to complete chage cost
+			return true
+		endif
+	elseif ChargeMode == 1	; local priority
 		return removeLocalCharge(ChargeCost) || SharedCharges.requestCharge(ChargeCost)
-	elseif ChargeMode == 2	;local only
+	elseif ChargeMode == 2	; local only
 		return removeLocalCharge(ChargeCost) 
 	endif
+	return false
 endfunction
 ;___________________________________________________________________________________________________________________________
 
@@ -224,22 +217,20 @@ int function removeLocalCharge(int iRequest)
 	if iRequest > 0 && LocalCharge >= iRequest
 		LocalCharge -= iRequest
 		Debug.Notification("Bloodskal Charges: " +LocalCharge)
-		;RegisterForDistanceTravelledEvent(ChargeDistance)
-		;RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR)
 		RegisterForRecharge()
 		return iRequest
 	else
 		return 0
 	endif
 EndFunction
+;___________________________________________________________________________________________________________________________
 
+; Adds charges up to max, and (un)registers recharge accordingly
 function addLocalCharge(int charge = 1)
 	if LocalCharge != MaxLocalCharge
 		LocalCharge += charge
 		if LocalCharge < MaxLocalCharge
 			Debug.Notification("Bloodskal Charges: " +LocalCharge)
-			;RegisterForDistanceTravelledEvent(ChargeDistance)
-			;RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR)
 			RegisterForRecharge()
 			return
 		else
@@ -252,18 +243,19 @@ function addLocalCharge(int charge = 1)
 endFunction
 ;___________________________________________________________________________________________________________________________
 
-; 
+; Recharge from distance travelled
 function OnDistanceTravelledEvent()
 	addLocalCharge()
 endfunction
 ;___________________________________________________________________________________________________________________________
 
-; 
+; Recharge from magicak siphon
 function OnMagickaSiphonEvent()
 	addLocalCharge()
 EndFunction
+;___________________________________________________________________________________________________________________________
 
-
+; Register for any recharge sources
 Function RegisterForRecharge()
 	RegisterForDistanceTravelledEvent(ChargeDistance)
 	RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR)
@@ -272,17 +264,18 @@ EndFunction
 ;====================================		    Menus			================================================
 ;================================================================================================
 
-Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu)
+Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu, GlobalVariable MenuActive)
 	bool abMenu = True
 	int aiButton
-	while abMenu
+	while abMenu && MenuActive.Value
 		SetButtonMain(Button)
 		aiButton = MainMenu.Show()
 		if aiButton == 0
-			return
+			abMenu = False
+		elseif aiButton == 9		; Cancel Menu
+			MenuActive.SetValue(0)
 		elseif aiButton == 1		; Turn on Balanced
-			bBalanced = True
-			bUseCharges = True
+			RestoreDefaultFields()
 		elseif aiButton == 2		; Turn off Balanced
 			bBalanced = False
 		elseif aiButton == 3		; Turn On Charges
@@ -316,6 +309,7 @@ Function SetButtonMain(INEQ_MenuButtonConditional Button)
 	endif
 	Button.set(5)
 	Button.set(7)
+	Button.set(9)
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
@@ -326,9 +320,8 @@ Function MenuChargeOptions(INEQ_ListenerMenu ListenerMenu)
 		aiButton = ChargeOptionsMenu.Show()
 		if aiButton == 0
 			return
-		elseif aiButton == 1	; Charge Cost DONT USE UNTIL HASCHARGE() GENARALIZED
+		elseif aiButton == 1	; Charge Cost
 			ChargeCost = ListenerMenu.ChargeCost(ChargeCost, DEFChargeCost)
-			Debug.Notification("Option not available")
 		elseif aiButton == 2	; Charge Storage
 			MaxLocalCharge = ListenerMenu.ChargeStorage(MaxLocalCharge, DEFMaxLocalCharge)
 			RegisterForRecharge()

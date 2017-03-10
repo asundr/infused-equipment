@@ -84,6 +84,7 @@ Function AttemptDeactivate(bool cheated = False)
 			AbilityAliasArray[index].DeactivateAbility()
 		endif
 	endwhile
+	clear()
 EndFunction
 
 Function AttemptActivate()

@@ -32,29 +32,21 @@ String  Property  BashStop   =  "bashStop"  	Autoreadonly		; stop bashing
 String  Property  BashRelease =	"bashRelease"	Autoreadonly		; power bashing
 
 ;===========================================  Variables  ============================================================================>
-ObjectReference EquipRef
 bool RefIsPlayer
 int TimesHit
 
 INEQ_SharedCharges SharedCharges
 
 ;===============================================================================================================================
-;====================================		    Start			================================================
+;====================================	    Maintenance			================================================
 ;================================================================================================
 
 Event OnEffectStart (Actor akTarget, Actor akCaster)
+	parent.EffectStart(akTarget, akCaster)
 	RestoreDefaultFields()
 	RefIsPlayer = SelfRef == Game.GetPlayer()
 	SharedCharges = SharedChargesAlias as INEQ_SharedCharges
 	RegisterAbilityToAlias()
-EndEvent
-
-Event OnEffectFinish (Actor akTarget, Actor akCaster)
-	UnregisterForUpdate()
-	UnregisterForAnimationEvent(selfRef, BashRelease)
-	UnregisterForAnimationEvent(selfRef, BashExit)
-	UnregisterForAnimationEvent(selfRef, BashStop)
-	UnregisterAbilityToAlias()
 EndEvent
 
 Function RestoreDefaultFields()
@@ -292,14 +284,16 @@ EndFunction
 ;====================================			Menus			================================================
 ;================================================================================================
 
-Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu)
+Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu, GlobalVariable MenuActive)
 	bool abMenu = True
 	int aiButton
-	while abMenu
+	while abMenu && MenuActive.Value
 		setButtonMain(Button)
 		aiButton = OptionsMenu.Show()
 		if aiButton == 0
-			return
+			abMenu = False
+		elseif aiButton == 9	; Cancel Menu
+			MenuActive.SetValue(0)
 		elseif aiButton == 1	; Turn on Balanced (Magicka Based)
 			bBalanced = True
 		elseif aiButton == 2	; Turn off Balanced (Cooldown Based)
@@ -324,6 +318,7 @@ Function setButtonMain(INEQ_MenuButtonConditional Button)
 		Button.set(5)
 	endif
 	Button.set(3)
+	Button.set(9)
 EndFunction
 ;___________________________________________________________________________________________________________________________
 

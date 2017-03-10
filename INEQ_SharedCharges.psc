@@ -2,23 +2,24 @@ Scriptname INEQ_SharedCharges extends ReferenceAlias
 {Holds and transfers charges used by various abilities}
 
 ;===========================================  Properties  ===========================================================================>
+float	Property	ChargeDistance	=	110.0	Auto	Hidden
+float	Property	ChargeMagicka	=	150.0	Auto	Hidden
+int		Property	PriorityMagicka	=	10		Auto	Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
-
-float	Property	ChargeDistance	=	110.0	Autoreadonly	Hidden	; 2000
-float	Property	ChargeMagicka	=	150.0	Autoreadonly	Hidden	; 
-int		Property	PriorityMagicka	=	10		Autoreadonly	Hidden	; 100
+float	Property	DEFChargeDistance	=	2000.0	Autoreadonly	Hidden
+float	Property	DEFChargeMagicka	=	150.0	Autoreadonly	Hidden
+int		Property	DEFPriorityMagicka	=	10		Autoreadonly	Hidden
 
 ;===========================================  Variables  ============================================================================>
 Actor SelfRef
+INEQ_SharedChargesListener EventListener
 
 int numCharges	= 5	;use GV for persistence?
 int maxCharges	= 5
 
-INEQ_SharedChargesListener EventListener
-
 ;===============================================================================================================================
-;====================================	    Start/Finish		================================================
+;====================================	    Maintenance			================================================
 ;================================================================================================
 
 Event OnInit()
@@ -31,6 +32,12 @@ Event OnPlayerLoadGame()
 	RegisterForDistanceTravelledEvent()
 	RegisterForMagickaSiphonEvent()
 EndEvent
+
+Function RestoreDefaultFields()
+	ChargeDistance = DEFChargeDistance
+	ChargeMagicka = DEFChargeMagicka
+	PriorityMagicka = DEFPriorityMagicka
+Endfunction
 	
 ;===============================================================================================================================
 ;====================================			Functions			================================================

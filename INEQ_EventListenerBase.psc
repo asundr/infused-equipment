@@ -1,11 +1,10 @@
 Scriptname INEQ_EventListenerBase extends ActiveMagicEffect Hidden
-{}
+{Base used for abilities and effects that can register and listen for INEQ updates}
 
 ;===========================================  Properties  ===========================================================================>
-
-;ReferenceAlias	Property	SharedChargesAlias		Auto
-ReferenceAlias	Property	DistanceTravelledAlias	Auto
-ReferenceAlias	Property	MagickaSiphonAlias		Auto
+ReferenceAlias	Property	DistanceTravelledAlias	Auto	Hidden
+ReferenceAlias	Property	MagickaSiphonAlias		Auto	Hidden
+;ReferenceAlias	Property	SharedChargesAlias		Auto	Hidden
 
 bool	Property	bRegisteredDT	=	False	Auto	Hidden
 bool	Property	bRegisteredMS	=	False	Auto	Hidden
@@ -14,9 +13,8 @@ int		Property	LocalCharge		=	0		Auto	Hidden
 int		Property	MaxLocalCharge	=	1		Auto	Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
-
-String	Property	ModName		=	"InfusedEquipment.esp"	Autoreadonly
-int		Property	QuestID		=	0x001305b7	Autoreadonly
+String	Property	ModName			=	"InfusedEquipment.esp"	Autoreadonly
+int		Property	RechargeQuestID	=	0x001305b7				Autoreadonly
 
 ;===============================================================================================================================
 ;====================================	    Maintenance			================================================
@@ -36,41 +34,27 @@ EndEvent
 ;___________________________________________________________________________________________________________________________
 
 Function EffectStart(Actor akTarget, Actor akCaster)
-	self.Maintenance()
+	if !DistanceTravelledAlias
+		DistanceTravelledAlias = (Game.GetFormFromFile(RechargeQuestID, ModName) as Quest).GetAlias(0) as ReferenceAlias
+	endif
+	
+	if !MagickaSiphonAlias
+		MagickaSiphonAlias = (Game.GetFormFromFile(RechargeQuestID, ModName) as Quest).GetAlias(2) as ReferenceAlias
+	endif
 EndFunction
 
 Function EffectFinish(Actor akTarget, Actor akCaster)
+	UnregisterForDistanceTravelledEvent()
+	UnregisterForMagickaSiphonEvent()
 EndFunction
 
 Function PlayerLoadGame()
 EndFunction
 
 Function Maintenance()
-	if !DistanceTravelledAlias
-		DistanceTravelledAlias = (Game.GetFormFromFile(QuestID, ModName) as Quest).GetAlias(0) as ReferenceAlias
-	endif
-	
-	if !MagickaSiphonAlias
-		MagickaSiphonAlias = (Game.GetFormFromFile(QuestID, ModName) as Quest).GetAlias(2) as ReferenceAlias
-	endif
-		
-;	if DistanceTravelled
-;		RegisterForDistanceTravelledEvent(ChargeDistance)
-;	else
-;		DistanceTravelled = DistanceTravelledAlias as INEQ_DistanceTravelled
-;		if DistanceTravelled
-;			RegisterForDistanceTravelledEvent(ChargeDistance)
-;		endif
-;	endif
-;	
-;	if MagickaSiphon
-;		RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR)
-;	else
-;		MagickaSiphon = MagickaSiphonAlias as INEQ_MagickaSiphon
-;		if MagickaSiphon
-;			RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR)
-;		endif
-;	endif
+EndFunction
+
+Function RestoreDefaultFields()
 EndFunction
 
 ;===============================================================================================================================
@@ -122,5 +106,3 @@ bool Function isRegisteredMagickaSiphon()
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
-Function RestoreDefaultFields()
-EndFunction

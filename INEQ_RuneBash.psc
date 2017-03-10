@@ -2,7 +2,7 @@ Scriptname INEQ_RuneBash extends INEQ_AbilityBase1H
 {Attached to the ability's magic effect}
 
 ;===========================================  Properties  ===========================================================================>
-Message	Property	MainMenu	Auto
+Message		Property	MainMenu	Auto
 
 Spell		Property	RuneSpell		Auto
 Activator	Property	ProximityCheck	Auto
@@ -10,25 +10,18 @@ Activator	Property	ProximityCheck	Auto
 bool	Property	bBalanced	=	True	Auto	Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
-
 String  Property  BashExit  = 	"bashExit"  	Autoreadonly			; End bashing
 
 ;===========================================  Variables  ============================================================================>
-ObjectReference EquipRef
-
 bool bCheckProximity = True
 
 ;===============================================================================================================================
-;====================================	    Start/Finish		================================================
+;====================================	    Maintenance			================================================
 ;================================================================================================
 
 Event OnEffectStart(Actor akTarget, Actor akCaster)
+	parent.EffectStart(akTarget, akCaster)
 	RegisterAbilityToAlias()
-EndEvent
-
-Event OnEffectFinish (Actor akTarget, Actor akCaster)
-	UnregisterForAnimationEvent(selfRef, BashExit)
-	UnregisterAbilityToAlias()
 EndEvent
 
 Function RestoreDefaultFields()
@@ -76,6 +69,7 @@ EndState
 ;====================================			Functions			================================================
 ;================================================================================================
 
+; Checks the proximity before deciding whether to cast the rune
 Function AttemptCastRune()
 	ObjectReference box = SelfRef.Placeatme(ProximityCheck, abInitiallyDisabled = True)
 	float direction = SelfRef.getAngleZ()
@@ -88,32 +82,37 @@ Function AttemptCastRune()
 	box.setscale(2.5)								; 3.0	;2.0
 	(box as INEQ_RuneBashProximity).register(self, SelfRef)
 EndFunction
+;___________________________________________________________________________________________________________________________
 
+; Handles casting the rune and the casting cost
 Function CastRune()
 	;Debug.Notification("cast rune")
 	RuneSpell.cast(SelfRef)
 ;	SelfRef.damageAv("stamina", 25)		;default cost
 EndFunction
+;___________________________________________________________________________________________________________________________
 
+; Sets the angle of an object around the object's local origin (x = pitch, y = yaw, z = heading)
 Function SetLocalAngle(ObjectReference MyObject, Float LocalX, Float LocalY, Float LocalZ) Global
 	float AngleX = LocalX * Math.Cos(LocalZ) + LocalY * Math.Sin(LocalZ)
 	float AngleY = LocalY * Math.Cos(LocalZ) - LocalX * Math.Sin(LocalZ)
 	MyObject.SetAngle(AngleX, AngleY, LocalZ)
 EndFunction
 
-
 ;===============================================================================================================================
 ;====================================		    Menus			================================================
 ;================================================================================================
 
-Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu)
+Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu, GlobalVariable MenuActive)
 	bool abMenu = True
 	int aiButton
-	while abMenu
+	while abMenu && MenuActive.Value
 		SetButtonMain(Button)
 		aiButton = MainMenu.Show()
 		if aiButton == 0
-			return
+			abMenu = False
+		elseif aiButton == 9		; Cancel menu
+			MenuActive.SetValue(0)
 		elseif aiButton == 1		; Turn on Balanced
 			bBalanced = True
 			RestoreDefaultFields()
@@ -123,7 +122,7 @@ Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu Listen
 			bCheckProximity = True
 		elseif aiButton == 4		; Turn off proximity check
 			bCheckProximity = False
-		elseif aiButton == 5		; Set Rare Effect Threshhold
+		elseif aiButton == 5		; 
 			
 		endif
 	endwhile
@@ -143,5 +142,5 @@ Function SetButtonMain(INEQ_MenuButtonConditional Button)
 	else
 		Button.set(3)
 	endif
-	
+	Button.set(9)
 EndFunction

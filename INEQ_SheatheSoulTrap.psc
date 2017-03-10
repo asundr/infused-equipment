@@ -1,21 +1,19 @@
-Scriptname INEQ_SheatheSoulTrap extends INEQ_AbilityBase  
+Scriptname INEQ_SheatheSoulTrap extends INEQ_AbilityBase 
 {Attached to the ability's magic effect}
 
 ;===========================================  Properties  ===========================================================================>
-Spell property SheathSpell auto
+Spell	Property	SheathSpell	Auto
 
+;==========================================  Autoreadonly  ==========================================================================>
 String  Property  WeaponSheathe  = 	"WeaponSheathe"  	Autoreadonly		; weapon sheathed
 
 ;===========================================  Variables  ============================================================================>
-ObjectReference EquipRef
+
 
 ;===============================================================================================================================
-;====================================		    Start/Finish			================================================
+;====================================	    Maintenance			================================================
 ;================================================================================================
 
-Event OnEffectFinish (Actor akTarget, Actor akCaster)
-	UnregisterForAnimationEvent(selfRef, WeaponSheathe)
-EndEvent
 
 ;===============================================================================================================================
 ;====================================			States			================================================

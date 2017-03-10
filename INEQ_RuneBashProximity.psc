@@ -1,9 +1,14 @@
 Scriptname INEQ_RuneBashProximity extends ObjectReference Hidden 
+{Reports to the runebash ability whether this attached trigger box is occupied}
 
+;===========================================  Properties  ===========================================================================>
+
+;==========================================  Autoreadonly  ==========================================================================>
+float	Property	WaitForTrigger	=	0.15	Autoreadonly
+
+;===========================================  Variables  ============================================================================>
 INEQ_RuneBash BashAbility
-ObjectReference SelfRef
-
-;float gametime
+ObjectReference BoxRef
 
 ;===============================================================================================================================
 ;====================================			States			================================================
@@ -11,15 +16,17 @@ ObjectReference SelfRef
 
 auto state Ready
 
-	Event onTriggerEnter(ObjectReference triggerRef)
+	; If box is occupied, go to the inert state and delete the box unless its the player
+	Event OnTriggerEnter(ObjectReference triggerRef)
 	;Debug.Notification("OnTriggerEnter time: " + (Utility.getCurrentRealTime() - gametime))
-		if triggerRef != SelfRef
+		if triggerRef != BoxRef
 			GoToState("Triggered")
 		else
 			;Debug.Notification("player in box")
 		endif
 	EndEvent
 	
+	; If box is unoccupied before the timer expires, tell the ability to cast the spell
 	Event OnUpdate()
 		BashAbility.castRune()
 		Disable()
@@ -27,7 +34,9 @@ auto state Ready
 	EndEvent
 	
 endstate	
-	
+
+;___________________________________________________________________________________________________________________________
+
 State Triggered
 
 	Event OnBeginState()
@@ -41,10 +50,11 @@ EndState
 ;====================================			Functions			================================================
 ;================================================================================================
 
-function register(INEQ_RuneBash akBashability, ObjectReference akSelfRef)
+; Used by INEQ_RuneBash to start checking for occumants in the trigger box
+function register(INEQ_RuneBash akBashability, ObjectReference akBoxRef)
 	BashAbility = akBashability
-	SelfRef = akSelfRef
+	BoxRef = akBoxRef
 	;gametime = Utility.getCurrentRealTime()
-	RegisterForSingleUpdate(0.15)
+	RegisterForSingleUpdate(WaitForTrigger)
 	Enable()
 EndFunction

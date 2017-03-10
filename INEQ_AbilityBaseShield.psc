@@ -1,6 +1,5 @@
 Scriptname INEQ_AbilityBaseShield extends INEQ_AbilityBase Hidden
-
-;ObjectReference EquipRef
+{Override of AbilityBase to account for how game handles un/equip events for shields}
 
 Function EquipCheckKW(ObjectReference akReference)
 	if akReference && akReference.HasKeyword(KW_EnbaleAbility)

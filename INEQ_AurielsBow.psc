@@ -24,7 +24,6 @@ Float	Property	ChargeDistance	=	100.0	Auto	Hidden
 int		Property	ChargeTime		=	600		Auto	Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
-
 Float	Property	DEFChargeDistance	=	100.0	Autoreadonly	; in feet ; 2000.0
 int		Property	DEFChargeTime		=	600		Autoreadonly
 
@@ -35,22 +34,18 @@ String	Property	ArrowFired	=	"attackStop"	Autoreadonly
 
 ;===========================================  Variables  ============================================================================>
 ImageSpaceModifier MyImageSpace = None
-bool bRecharged = False
-bool bUseCharges = True
-bool bUseTimer = False
+bool bRecharged		= False
+bool bUseCharges	= True
+bool bUseTimer		= False
 
 ;===============================================================================================================================
-;====================================			States			================================================
+;====================================	    Maintenance			================================================
 ;================================================================================================
 
 Event OnEffectStart(Actor akTarget, Actor akCaster)
+	parent.EffectStart(akTarget, akCaster)
 	RegisterForDistanceTravelledEvent(ChargeDistance)
 	RegisterAbilityToAlias()
-EndEvent
-
-Event OnEffectFinish(Actor akTarget, Actor akCaster)
-	UnregisterForDistanceTravelledEvent()
-	UnregisterAbilityToAlias()
 EndEvent
 
 Function RestoreDefaultFields()
@@ -138,7 +133,11 @@ ImageSpaceModifier Function GetSunGazeImod(bool activate = True)
 		if SelfRef.IsSneaking()
 			MyImageSpace = DarkImodFX
 		else
-			MyImageSpace = LightImodFX
+			if bRecharged
+				MyImageSpace = LightImodFX
+			else
+				MyImageSpace = None
+			endif
 		endif
 	else
 		MyImageSpace = None
@@ -191,14 +190,16 @@ EndFunction
 ;====================================			Menus			================================================
 ;================================================================================================
 
-Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu)
+Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu, GlobalVariable MenuActive)
 	bool abMenu = True
 	int aiButton
-	while abMenu
+	while abMenu && MenuActive.Value
 		setButtonMain(Button)
 		aiButton = OptionsMenu.Show()
 		if aiButton == 0
-			return
+			abMenu = False
+		elseif aiButton == 9	; Cancel menu
+			MenuActive.SetValue(0)
 		elseif aiButton == 1	; Turn on Balanced (Magicka Based)
 			bBalanced = True
 			RestoreDefaultFields()
@@ -245,4 +246,5 @@ Function setButtonMain(INEQ_MenuButtonConditional Button)
 			Button.set(3)
 		endif
 	endif
+	Button.set(9)
 EndFunction

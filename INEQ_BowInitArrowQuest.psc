@@ -4,17 +4,20 @@ Scriptname INEQ_BowInitArrowQuest extends INEQ_AbilityBase
 ;===========================================  Properties  ===========================================================================>
 Quest Property ArrowAliasQuest Auto
 
+;==========================================  Autoreadonly  ==========================================================================>
+float	Property	QuestStopStep	=	0.1	Autoreadonly
+int		Property	CountMax		=	10	Autoreadonly
+
 ;===========================================  Variables  ============================================================================>
-ObjectReference EquipRef
 int count
 
 ;===============================================================================================================================
-;====================================		  Start/Finish			================================================
+;====================================	    Maintenance			================================================
 ;================================================================================================
 
 Event OnEffectFinish (Actor akTarget, Actor akCaster)
 	ArrowAliasQuest.Stop()
-	UnregisterForUpdate()
+	parent.EffectFinish(akTarget, akCaster)
 EndEvent
 
 ;===============================================================================================================================
@@ -23,20 +26,22 @@ EndEvent
 
 State Equipped
 	
+	; Stops the Quest containing the Arrow alias the registers to restart it
 	Event OnPlayerBowShot(Weapon akWeapon, Ammo akAmmo, float afPower, bool abSunGazing)
 		ArrowAliasQuest.Stop()
 		count = 0
 		RegisterForSingleUpdate(0)
 	EndEvent
 	
+	; Attempts to restart the Quest containing the arrow alias
 	Event OnUpdate()
 		if ArrowAliasQuest.IsStopped()
 			ArrowAliasQuest.Start()
 		else
-			if count < 10
-				RegisterForSingleUpdate(0.1)
+			if count < CountMax
+				RegisterForSingleUpdate(QuestStopStep)
 			else
-				Debug.MessageBox("Teleport is calibrating...")
+				Debug.Trace(self+ ": ArrowAliasQuest did not stop within " +(QuestStopStep*CountMax)+ " second(s)")
 			endif
 		endif
 	EndEvent

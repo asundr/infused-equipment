@@ -1,17 +1,21 @@
 Scriptname INEQ_AddAbilityOnEquipShield extends INEQ_AbilityBaseShield
 
 ;===========================================  Properties  ===========================================================================>
-Spell property abAbilitySpell auto
+Spell	Property	AbilitySpell	Auto
+
+;==========================================  Autoreadonly  ==========================================================================>
+
 
 ;===========================================  Variables  ============================================================================>
-ObjectReference EquipRef
+
 
 ;===============================================================================================================================
-;====================================		    Start			================================================
+;====================================	    Maintenance			================================================
 ;================================================================================================
 
 Event OnEffectFinish (Actor akTarget, Actor akCaster)
-	SelfRef.removespell(abAbilitySpell)
+	SelfRef.removespell(AbilitySpell)
+	parent.EffectFinish(akTarget, akCaster)
 EndEvent
 
 ;===============================================================================================================================
@@ -21,11 +25,11 @@ EndEvent
 State Equipped
 	
 	Event OnBeginState()
-		SelfRef.addSpell(abAbilitySpell, false)
+		SelfRef.addSpell(AbilitySpell, false)
 	EndEvent
 
 	Event OnEndState()
-		SelfRef.removespell(abAbilitySpell)
+		SelfRef.removespell(AbilitySpell)
 	EndEvent
 
 EndState
