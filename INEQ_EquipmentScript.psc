@@ -90,7 +90,7 @@ EndFunction
 ;__________________________________________________________________________________________________________________________
 
 ; Deactivates every alias, or every cheated alias if passed in as false
-Function AttemptDeactivate(bool cheated = False)
+Function DeactivateAll(bool cheated = False)
 	int index = AbilityAliasArray.length
 	while index > 0
 		index -= 1
@@ -102,15 +102,16 @@ EndFunction
 ;___________________________________________________________________________________________________________________________
 
 ; Activates an ability and updates it to the current reference
-Function AttemptActivate()
+Function ActivateAll()
 	int index = AbilityAliasArray.length
 	while index > 0
 		index -= 1
 		if AbilityAliasArray[index] != None
-			AbilityAliasArray[index].ActivateAbility()
 			AbilityAliasArray[index].AssignToEquipment(GetReference())
+			AbilityAliasArray[index].ActivateAbility()
 		endif
 	endwhile
+	
 endfunction
 ;___________________________________________________________________________________________________________________________
 

@@ -17,11 +17,6 @@ bool bBalanced
 ;====================================	    Maintenance			================================================
 ;================================================================================================
 
-Event OnEffectStart(Actor akTarget, Actor akCaster)
-	parent.EffectStart(akTarget, akCaster)
-	RegisterAbilityToAlias()
-EndEvent
-
 Event OnEffectFinish (Actor akTarget, Actor akCaster)
 	ArrowAliasQuest.Stop()
 	parent.EffectFinish(akTarget, akCaster)

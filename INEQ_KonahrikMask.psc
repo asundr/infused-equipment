@@ -32,11 +32,6 @@ bool bCharged
 ;====================================	    Maintenance			================================================
 ;================================================================================================
 
-Event OnEffectStart(Actor akTarget, Actor akCaster)
-	parent.EffectStart(akTarget, akCaster)
-	RegisterAbilityToAlias()
-EndEvent
-
 Function RestoreDefaultFields()
 	parent.RestoreDefaultFields()
 	bBalanced		= True

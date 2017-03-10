@@ -39,9 +39,7 @@ int TimesHit
 
 Event OnEffectStart (Actor akTarget, Actor akCaster)
 	parent.EffectStart(akTarget, akCaster)
-	RestoreDefaultFields()
 	RefIsPlayer = ( SelfRef == Game.GetPlayer() )
-	RegisterAbilityToAlias()
 EndEvent
 
 Function RestoreDefaultFields()

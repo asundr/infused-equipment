@@ -48,11 +48,6 @@ int InstanceID
 ;====================================	    Maintenance			================================================
 ;================================================================================================
 
-Event OnEffectStart (Actor akTarget, Actor akCaster)
-	parent.EffectStart(akTarget, akCaster)
-	RegisterAbilityToAlias()
-EndEvent
-
 Event OnEffectFinish (Actor akTarget, Actor akCaster)
 	SMART__EssentialPlayer.stop()
 	RechargeImod.remove()

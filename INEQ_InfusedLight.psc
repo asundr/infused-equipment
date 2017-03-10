@@ -22,11 +22,6 @@ String	Property	WeaponSheathe	=	"WeaponSheathe"		Autoreadonly		; sheathe weapon
 ;====================================	    Maintenance			================================================
 ;================================================================================================
 
-Event OnEffectStart(Actor akTarget, Actor akCaster)
-	parent.EffectStart(akTarget, akCaster)
-	RegisterAbilityToAlias()
-EndEvent
-
 Event OnEffectFinish (Actor akTarget, Actor akCaster)
 	SelfRef.RemoveSpell(LightSpell)
 	parent.EffectFinish(akTarget, akCaster)
