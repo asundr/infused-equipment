@@ -1,4 +1,4 @@
-Scriptname INEQ_AbilityBase extends ActiveMagicEffect Hidden
+Scriptname INEQ_AbilityBase extends INEQ_EventListenerBase Hidden
 
 Keyword	Property	KW_EnbaleAbility	Auto
 Actor	Property	SelfRef				Auto
@@ -21,7 +21,7 @@ Auto State Unequipped
 	
 EndState
 
-State Ready
+State Equipped
 EndState
 
 ;===============================================================================================================================
@@ -31,7 +31,7 @@ EndState
 Function EquipCheckKW(ObjectReference akReference)
 	if akReference && akReference.HasKeyword(KW_EnbaleAbility)
 		EquipRef = akReference
-		GoToState("Ready")
+		GoToState("Equipped")
 	endif
 EndFunction
 ;___________________________________________________________________________________________________________________________
@@ -53,13 +53,4 @@ Function ResetState()
 	if !EquipRef.HasKeyword(KW_EnbaleAbility)
 		GoToState("Unequipped")
 	endif
-EndFunction
-
-
-;===============================================================================================================================
-;====================================		   Events			================================================
-;================================================================================================
-
-; INEQ_DistanceTravelled
-Function OnDistanceTravelledEvent()
 EndFunction

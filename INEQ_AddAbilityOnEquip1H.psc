@@ -18,7 +18,7 @@ EndEvent
 ;====================================			States			================================================
 ;================================================================================================
 
-State Ready
+State Equipped
 	
 	Event OnBeginState()
 		SelfRef.addSpell(abAbilitySpell, false)

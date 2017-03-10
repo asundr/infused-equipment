@@ -21,7 +21,7 @@ EndEvent
 ;====================================			States			================================================
 ;================================================================================================
 
-State Ready
+State Equipped
 	
 	Event OnPlayerBowShot(Weapon akWeapon, Ammo akAmmo, float afPower, bool abSunGazing)
 		ArrowAliasQuest.Stop()

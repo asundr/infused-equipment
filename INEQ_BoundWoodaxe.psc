@@ -22,7 +22,7 @@ EndEvent
 ;====================================			States			================================================
 ;================================================================================================
 
-State Ready
+State Equipped
 	
 	Event OnBeginState()
 		woodChoppingAxes.AddForm(INEQ_Hands_BoundWoodaxe_zAxe)

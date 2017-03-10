@@ -18,17 +18,17 @@ ImageSpaceModifier property LightImodFX auto
 ImageSpaceModifier property DarkImodFX auto
 {Dark spell iMod for spell}
 
-ReferenceAlias	Property	AliasDT	Auto
+ReferenceAlias	Property	DistanceTravelledAlias	Auto
 
 String  Property  BowDraw 	= 	"bowDraw"  		autoreadonly
 String  Property  ArrowFired = 	"attackStop"  	autoreadonly
 
-Float	Property	ChargeDistance	=	200.0	Autoreadonly
+Float	Property	ChargeDistance	=	2000.0	Autoreadonly	;in feet
 
 ;===========================================  Variables  ============================================================================>
 ObjectReference EquipRef
 ImageSpaceModifier MyImageSpace = None
-INEQ_DistanceTravelled DT
+INEQ_DistanceTravelled DistanceTravelled
 bool sunCharged
 
 ;===============================================================================================================================
@@ -36,16 +36,23 @@ bool sunCharged
 ;================================================================================================
 
 Event OnEffectStart(Actor akTarget, Actor akCaster)
-	DT = AliasDT as INEQ_DistanceTravelled
-	sunCharged = false
-	DT.RegisterForEvent(self , ChargeDistance)
+	DistanceTravelled = DistanceTravelledAlias as INEQ_DistanceTravelled
+	if DistanceTravelled
+		sunCharged = !DistanceTravelled.RegisterForEvent(self as INEQ_EventListenerBase, ChargeDistance)
+	else
+		sunCharged = true
+	endif
+EndEvent
+
+Event OnEffectFinish(Actor akTarget, Actor akCaster)
+	DistanceTravelled.UnregisterForEvent(self as INEQ_EventListenerBase)
 EndEvent
 
 ;===============================================================================================================================
 ;====================================			States			================================================
 ;================================================================================================
 
-State Ready
+State Equipped
 	
 	Event OnBeginState()
 		RegisterForAnimationEvent(SelfRef, BowDraw)
@@ -76,20 +83,24 @@ State ArrowNocked
 				DLC1AurielsBowEclipseSpell.Cast(SelfRef, SelfRef)
 				RegisterForSingleUpdateGameTime(20 - GameHour.Value)
 				DLC1EclipseActive.Value = 1.0
-			elseif sunCharged
-				DLC1AurielsBowSunAttackSpell.Cast(SelfRef, SelfRef)
-				sunCharged = false
-				DT.RegisterForEvent(self , ChargeDistance)
+			else
+				if 	akAmmo == DLC1ElvenArrowBlessed
+					DLC1AurielsBowSunAttackSpell.Cast(SelfRef, SelfRef)
+				elseif sunCharged
+					sunCharged = false
+					DistanceTravelled.RegisterForEvent(self , ChargeDistance)
+					DLC1AurielsBowSunAttackSpell.Cast(SelfRef, SelfRef)
+				endif
 			endif
 		endif
 ;Debug.Notification("Exit Nocked via OnPlayerBowShot")
-		GoToState("Ready")
+		GoToState("Equipped")
 	EndEvent
 	
 	Event OnAnimationEvent(ObjectReference akSource, string asEventName)
 ;Debug.Notification("Exit Nocked via AnimationEvent")
 		Utility.Wait(0.1)
-		GoToState("Ready")
+		GoToState("Equipped")
 	EndEvent
 
 	Event OnEndState()
@@ -116,7 +127,7 @@ EndFunction
 ;====================================	   Ext Functions		================================================
 ;================================================================================================
 
-;event for clearskies speel to rest eclipse
+;event for clearskies spell to reset eclipse
 
 
 Function OnDistanceTravelledEvent()

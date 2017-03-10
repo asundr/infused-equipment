@@ -35,7 +35,7 @@ State Unequipped
 EndState
 ;___________________________________________________________________________________________________________________________
 
-State Ready
+State Equipped
 	
 	Event OnBeginState()
 		SelfRef.removespell(abWaterwalking)
@@ -67,7 +67,7 @@ State Waterwalking
 	; By sneaking and looking down you can enter the water
 	Event OnAnimationEvent(ObjectReference akSource, string EventName)
 		if  (selfRef.getAngleX() > 80 ) && (akSource == selfRef) &&( ( EventName == AnimWalking1) || ( EventName == AnimWalking2) )
-			GoToState("Ready")
+			GoToState("Equipped")
 		endif
 	EndEvent
 

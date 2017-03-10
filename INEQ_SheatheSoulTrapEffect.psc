@@ -25,69 +25,89 @@ Explosion property SomeExplosion auto
 Activator property AshPileObject auto
 VisualEffect  Property  MGTeleportOutEffect  Auto
 
+ReferenceAlias	Property	SharedChargesAlias	Auto
+Spell	Property	VisualSpell	Auto
+
+Formlist	Property	DisintegrationMainImmunityList	Auto
+
 ;======================================================================================;
 ;  VARIABLES   /
 ;=============/
-actor CasterActor
-actor Victim
+Actor SelfRef
+Actor Target
 ; objectreference playerref
 bool DeadAlready = FALSE
 bool bUseWait = True
+
+INEQ_SharedCharges SharedCharges
 
 ;======================================================================================;
 ;  EVENTS      /
 ;=============/
 
 
-Event OnEffectStart(Actor Target, Actor Caster)
-	victim = target
-	CasterActor = Caster
+Event OnEffectStart(Actor akTarget, Actor akCaster)
+	
+	SharedCharges =  SharedChargesAlias as INEQ_SharedCharges
+
+	Target = akTarget
+	SelfRef = akCaster
 	if bIsEnchantmentEffect == False
-		DeadAlready = Victim.IsDead()
+		DeadAlready = Target.IsDead()
 	endif
 	bUseWait = False
-	victim.kill(CasterActor)
-; 	debug.trace("Is Soultrap target dead? ("+deadAlready+")("+victim+")") 
+	Target.kill(SelfRef)
+; 	debug.trace("Is Soultrap target dead? ("+deadAlready+")("+Target+")") 
 EndEvent
 
 
-Event OnEffectFinish(Actor Target, Actor Caster)
-	debug.trace(self + " is finishing")
-	if victim
+Event OnEffectFinish(Actor akTarget, Actor akCaster)
+	if Target
 		if bUseWait 
 			Utility.Wait(0.25)
 		endif
 		if DeadAlready == False
-			if Caster.TrapSoul(victim) == true
-				debug.trace(victim + " is, in fact, dead.  Play soul trap visFX")
+			
+			SharedCharges.addCharge(1)
+			VisualSpell.cast(SelfRef)
+			Target.ApplyHavokImpulse(SelfRef.GetPositionX() - Target.GetPositionX(), SelfRef.GetPositionY() - Target.GetPositionY(), SelfRef.GetPositionZ() - Target.GetPositionZ() + 100, 350.0)
+			
+			if SelfRef.TrapSoul(Target) == true
+				;debug.trace(Target + " is, in fact, dead.  Play soul trap visFX")
 
-				if (SomeExplosion)
-					;Caster.placeatme(SomeExplosion)
+;				if (SomeExplosion)
+					;SelfRef.placeatme(SomeExplosion)
+;				endif
+				
+				if	!DisintegrationMainImmunityList.hasForm(Target.getRace() as Form)
+					Target.SetCriticalStage(Target.CritStage_DisintegrateStart)
+					TargetFXS.Play(Target,3)    	; Play Effect Shaders
+					Target.AttachAshPile()	;AshPileObject
+					RegisterForSingleUpdate(3.0)
 				endif
 				
-			;Target.SetCriticalStage(Target.CritStage_DisintegrateStart)
-				
-				;Caster.PushActorAway(Target, -1000)
-				Target.ApplyHavokImpulse(Caster.GetPositionX() - Target.GetPositionX(), Caster.GetPositionY() - Target.GetPositionY(), Caster.GetPositionZ() - Target.GetPositionZ() + 100, 350.0)
 
-				QSTDwemerGong.play(Caster)		
-				;TrapSoundFX.play(Caster)       ; play TrapSoundFX sound from player
-				;TrapImod.apply()                                  ; apply isMod at full strength
-				TargetVFX.Play(victim,2.7,Caster)              ; Play TargetVFX and aim them at the player
-				CasterVFX.Play(Caster,3.9,victim)
-			TargetFXS.Play(victim,3)    						; Play Effect Shaders
-				;CasterFXS.Play(Caster,3)
+				;QSTDwemerGong.play(SelfRef)		
+				;TrapSoundFX.play(SelfRef)       					; play TrapSoundFX sound from player
+				;TrapImod.apply()                                  	; apply isMod at full strength
+			;TargetVFX.Play(Target,2.7,SelfRef)             		; Play TargetVFX and aim them at the player
+				CasterVFX.Play(SelfRef,3.9,Target)
+			
+				;CasterFXS.Play(SelfRef,3)
 				
-			;utility.wait(3)     
-			;Target.AttachAshPile(AshPileObject)
-			;Target.SetCriticalStage(Target.CritStage_DisintegrateEnd)
-				
+
 			else
-				debug.trace(victim + " is, in fact, dead, But the TrapSoul check failed or came back false")
+				;debug.trace(Target + " is, in fact, dead, But the TrapSoul check failed or came back false")
 			endif
-		
 		else
-			debug.trace(self + "tried to soulTrap, but " + victim + " is already Dead.")
+			;debug.trace(self + "tried to soulTrap, but " + Target + " is already Dead.")
 		endif
 	endif
 endEvent
+
+Event OnUpdate()
+	;Target.AttachAshPile(none)	;AshPileObject
+	TargetFXS.Stop(Target)
+	Target.SetAlpha (0.0,True)
+	Target.SetCriticalStage(Target.CritStage_DisintegrateEnd)
+EndEvent

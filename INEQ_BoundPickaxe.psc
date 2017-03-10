@@ -24,7 +24,7 @@ EndEvent
 ;====================================			States			================================================
 ;================================================================================================
 
-State Ready
+State Equipped
 	
 	Event OnBeginState()
 		mineOreToolsList.AddForm(INEQ_Hands_BoundPickaxe_zPick)

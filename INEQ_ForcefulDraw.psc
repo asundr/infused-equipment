@@ -11,7 +11,7 @@ Explosion property DLC1VampDetectLifeExplosion auto
 
 ReferenceAlias Property AliasDT Auto
 
-Float	Property	ChargeDistance	=	100.0	Autoreadonly
+Float	Property	ChargeDistance	=	1000.0	Autoreadonly			; in feet
 
 String  Property  WeaponDrawn  = "WeaponDraw"  	Autoreadonly			; Draw weapon
 
@@ -20,6 +20,7 @@ String  Property  WeaponDrawn  = "WeaponDraw"  	Autoreadonly			; Draw weapon
 ObjectReference EquipRef
 INEQ_DistanceTravelled DT
 bool bRecharged
+bool bRegistered
 
 ;===============================================================================================================================
 ;====================================	    Start/Finish		================================================
@@ -28,11 +29,18 @@ bool bRecharged
 Event OnEffectStart(Actor akTarget, Actor akCaster)
 	DT = AliasDT as INEQ_DistanceTravelled
 	bRecharged = false
+	bRegistered = false
 EndEvent
 
 Event OnEffectFinish (Actor akTarget, Actor akCaster)
 	UnregisterForUpdate()
 	UnregisterForAnimationEvent(selfRef, WeaponDrawn)
+EndEvent
+
+Event OnPlayerLoadGame()
+	if !bRegistered
+		bRegistered = DT.RegisterForEvent(self as INEQ_EventListenerBase, ChargeDistance)
+	endif
 EndEvent
 
 ;===============================================================================================================================
@@ -52,14 +60,13 @@ State Unequipped
 EndState
 ;___________________________________________________________________________________________________________________________
 
-State Ready
+State Equipped
 
 	Event OnBeginState()
 		if(bRecharged)
 			GoToState("Active")
-		else
-			;RegisterForSingleUpdate(5) ;900
-			DT.RegisterForEvent(self , ChargeDistance) 			;have two modes, time based and distance based
+		else				;if !bRegistered
+			bRegistered = DT.RegisterForEvent(self as INEQ_EventListenerBase, ChargeDistance) 			;have two modes, time based and distance based
 		endif
 	EndEvent
 	
@@ -78,6 +85,7 @@ EndState
 Function CastRecharge()
 	RechargeVisual.cast(SelfRef,SelfRef)
 	bRecharged = True
+	bRegistered = False
 	Debug.Notification("Forceful Draw recharged!")
 EndFunction
 ;___________________________________________________________________________________________________________________________
@@ -106,5 +114,5 @@ Function CastForcefulDraw()
 	selfRef.placeatme(DLC1VampDetectLifeExplosion)
 	DrawSpell.cast(selfRef)
 	bRecharged = False
-	GoToState("Ready")
+	GoToState("Equipped")
 EndFunction
