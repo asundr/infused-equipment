@@ -26,6 +26,7 @@ EndFunction
 
 ; Placeholder
 Function RestoreDefaultFields()
+	parent.RestoreDefaultFields()
 EndFunction
 
 ;===============================================================================================================================

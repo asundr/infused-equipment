@@ -25,6 +25,7 @@ Event OnEffectStart(Actor akTarget, Actor akCaster)
 EndEvent
 
 Function RestoreDefaultFields()
+	parent.RestoreDefaultFields()
 	bBalanced		= True
 	bCheckProximity	= True
 EndFunction

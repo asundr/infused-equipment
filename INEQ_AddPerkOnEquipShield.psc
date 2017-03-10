@@ -14,10 +14,15 @@ Perk	Property	SomePerk	Auto
 ;====================================	    Maintenance			================================================
 ;================================================================================================
 
-Event OnEffectFinish (Actor akTarget, Actor akCaster)
+;Event OnEffectFinish (Actor akTarget, Actor akCaster)
+;	SelfRef.RemovePerk(somePerk)
+;	parent.EffectFinish(akTarget, akCaster)
+;EndEvent
+
+Function EffectFinish(Actor akTarget, Actor akCaster)
 	SelfRef.RemovePerk(somePerk)
 	parent.EffectFinish(akTarget, akCaster)
-EndEvent
+EndFunction
 
 ;===============================================================================================================================
 ;====================================			States			================================================

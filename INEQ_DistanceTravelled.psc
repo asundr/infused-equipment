@@ -7,33 +7,34 @@ GlobalVariable Property TotalDistance auto	; reset numberGV for when totaldistan
 Static Property XMarker	Auto
 
 ;==========================================  Autoreadonly  ==========================================================================>
-String	Property  Step		=  "FootRight"  Autoreadonly		; any movement with right foot
-String	Property  JumpEnd	=  "JumpDown"  	Autoreadonly		; jumping landing animation
-String  Property  GetUp		=  "GetUpEnd"	Autoreadonly		; getting up after ragdoll
-
 float	Property	interval 			= 	100.0		Autoreadonly	; distance interval to send events... might not be necessary since send events will usually only check once
 float	Property	MaxDistanceStep		=	1000.0		Autoreadonly	; in units. accounts for teleporting doors. Could probably be lower, but players might want to increase speedmult
 float	Property	MaxDistanceTravel	=	100000000.0	Autoreadonly	; in units. accounts for teleporting doors if bIncludeFastTravl = true. Skyrim's largest end to end is 62,115 units
 
+bool	Property	bDebugTrace		=	True	Autoreadonly
+bool	Property	bDebugMessage	=	False	Autoreadonly
+
+String	Property  Step		=  "FootRight"  Autoreadonly		; any movement with right foot
+String	Property  JumpEnd	=  "JumpDown"  	Autoreadonly		; jumping landing animation
+String  Property  GetUp		=  "GetUpEnd"	Autoreadonly		; getting up after ragdoll
 ;===========================================  Variables  ============================================================================>
 ObjectReference LastPosition
 
 float milestone = 0.0
-bool bEnableOffState 	= True		; if enabled, allows the script to stop tracking distance when nothing is registered
-bool bIncludeFastTravel	= True		; if enabled, includes fast travel distance
+bool bEnableOffState		; if enabled, allows the script to stop tracking distance when nothing is registered
+bool bIncludeFastTravel		; if enabled, includes fast travel distance
 
-INEQ_EventListenerBase[] registeredAb
-float[] registeredDist
+INEQ_EventListenerBase[] RegisteredAB
+float[] RegisteredDist
 
-INEQ_EventListenerBase[] bufferAb
-float[] bufferDist
+INEQ_EventListenerBase[] BufferAB
+float[] BufferDist
 
 INEQ_EventListenerBase[] UnregisterAB
 
-int numRequests = 0
-int numBuffered = 0
-int numUnregistered = 0
-
+int numRequests
+int numBuffered
+int numUnregistered
 ;===============================================================================================================================
 ;====================================	    Maintenance			================================================
 ;================================================================================================
@@ -41,17 +42,26 @@ int numUnregistered = 0
 Event OnInit()
 	parent.Init()
 	TotalDistance.SetValue(0)
-	registeredAb = new INEQ_EventListenerBase[16]		; NOTE: should probably increase or provide a function to incrase array size if necesary
-	registeredDist = new float[16]
-	bufferAb = new INEQ_EventListenerBase[16]
-	bufferDist = new float[16]
-	UnregisterAB = new INEQ_EventListenerBase[16]
-	GoToState("Off")
 EndEvent
 
 Function RestoreDefaultFields()
+	parent.RestoreDefaultFields()
 	bEnableOffState		= True
 	bIncludeFastTravel	= True
+EndFunction
+
+Function FullReset()
+	parent.FullReset()
+	milestone = interval + TotalDistance.Value
+	RegisteredAB = new INEQ_EventListenerBase[32]
+	RegisteredDist = new float[32]
+	BufferAB = new INEQ_EventListenerBase[16]
+	BufferDist = new float[16]
+	UnregisterAB = new INEQ_EventListenerBase[16]
+	numRequests = 0
+	numBuffered = 0
+	numUnregistered = 0
+	GoToState("Off")
 EndFunction
 
 ;===============================================================================================================================
@@ -60,13 +70,13 @@ EndFunction
 
 State Off
 
-	bool function toggle()
-		GoToState("Active")
-		return true
-	endFunction
+	Function UpdateState()
+		if numRequests > 0 || !bEnableOffState
+			GoToState("Active")
+		endif
+	EndFunction
 	
 EndState
-
 ;___________________________________________________________________________________________________________________________
 
 State Active
@@ -83,7 +93,7 @@ State Active
 		if asEventName == Step
 			float displacement = LastPosition.getDistance(SelfRef)
 			if (displacement < MaxDistanceStep) || (bIncludeFastTravel && displacement < MaxDistanceTravel)
-				TotalDistance.setValue(TotalDistance.getValue() + displacement * 3.0 / 64.0) ;units to feet conversion
+				TotalDistance.Value += displacement * 3.0/64.0	;setValue(TotalDistance.getValue() + displacement * 3.0 / 64.0) ;units to feet conversion
 				if TotalDistance.getValue() > milestone	;NOTE: Using this method can lead to issues if player manually edits the GV since the milestone will be updated. This means events will be delayed if GV reduced
 					milestone = TotalDistance.getValue() + interval
 					sendEvent()
@@ -100,11 +110,12 @@ State Active
 	Event OnTranslationComplete()
 		LastPosition.MoveTo(SelfRef)
 	EndEvent
-	
-	bool Function toggle()
-		GoToState("Off")
-		return false
-	endFunction
+
+	Function UpdateState()
+		if numRequests == 0 && bEnableOffState
+			GoToState("Off")
+		endif
+	EndFunction
 	
 	Event OnEndState()
 		UnregisterForAnimationEvent(SelfRef, Step)
@@ -117,8 +128,8 @@ State Active
 EndState
 ;___________________________________________________________________________________________________________________________
 
-; Prevents registrations from changing the array while sending events. Instead, stores registrations 
-; in a temporary buffer array then transfers them when the main array is no longer sending events
+; Prevents functions from changing the array while modifying it. Instead, stores (un)registrations 
+; in a temporary buffer array then applies them when the main array is no longer busy
 State RegisterBusy
 
 	; TESTING
@@ -128,37 +139,42 @@ State RegisterBusy
 	
 	;Stores requests in a temporary array
 	bool function RegisterForEvent(INEQ_EventListenerBase akAsker, float akDistance)
-		if numBuffered == bufferAb.length || numBuffered + numRequests >= registeredAb.length
+	;DEBUGTEXT("{Reg  S}", 0,  false, True)
+		if numBuffered == BufferAB.length || numBuffered + numRequests >= RegisteredAB.length
 			Debug.Trace(self+ ": Number of requests exceeded buffer or main array on adding " +akAsker)
 			return false
 		else
-			bufferAb[numBuffered] = akAsker
-			bufferDist[numBuffered] = TotalDistance.Value + akDistance
+			BufferAB[numBuffered] = akAsker
+			BufferDist[numBuffered] = TotalDistance.Value + akDistance
 			numBuffered += 1
 			return true
 		endif
+	;DEBUGTEXT("{Reg  E}", 0,  false, True)
 	endfunction
 	
 	
 	; Stores unregistration requests in an array
 	Function UnregisterForEvent(INEQ_EventListenerBase akAsker)
+	;DEBUGTEXT("{Unreg S}", 0,  false, True)
 		int index = BufferAB.find(akAsker)
 		if index != -1
 			BufferAB[index] = None
 			BufferDist[index] = 0.0
 			numUnregistered += 1
 		endif
-		index = registeredAB.find(akAsker)
+		index = RegisteredAB.find(akAsker)
 		if index != -1
 			UnregisterAB[numUnregistered] = akAsker
 			numUnregistered += 1
 		endif
+	;DEBUGTEXT("{Unreg E}", 0,  false, True)
 	EndFunction
 	
 	
 	; transfers elements from temporary arrays to the main array and then sorts it
 	Event OnEndState()
-	
+	;DEBUGTEXT("{Busy S}", 0,  false, True)
+
 		; Adds all elements registered while sending events (see INEQ_MagickaSiphon for detials)
 		if numBuffered
 			int i = 0
@@ -190,7 +206,7 @@ State RegisterBusy
 						RegisteredAB[index] = None
 						RegisteredDist[index] = 0.0
 					endif
-					unregisterAB[i] = None
+					UnregisterAB[i] = None
 				endif
 			endwhile	
 			ShiftElementsDown(RegisteredAB, RegisteredDist)
@@ -201,81 +217,90 @@ State RegisterBusy
 			numBuffered = 0
 			sortDescending()
 		endif
-	
+	;DEBUGTEXT("{Busy E}", 0,  false, True)
 	EndEvent
 
 EndState
 
 ;===============================================================================================================================
-;====================================			Functions			================================================
+;====================================		Main Functions			================================================
 ;================================================================================================
-
-;placeholder for overrides in Active/Off states
-bool Function toggle()
-EndFunction
-;___________________________________________________________________________________________________________________________
 
 ; Assumes array sorted from farthest to closest. Sends an event to the closest index until the next one is too far away
 function sendEvent()
 	String previous = GetState()
 	GoToState("RegisterBusy")
-	while numRequests && registeredDist[numRequests - 1] && registeredDist[numRequests - 1] < TotalDistance.Value
+	while numRequests && RegisteredDist[numRequests - 1] && RegisteredDist[numRequests - 1] < TotalDistance.Value
+	;DEBUGTEXT("{Send S}", 0,  false, True)
 		numRequests -= 1
 		RegisteredAB[numRequests].bRegisteredDT = False
-		registeredAb[numRequests].OnDistanceTravelledEvent()
-		registeredAb[numRequests] = none
-		registeredDist[numRequests] = 0.0
+		RegisteredAB[numRequests].OnDistanceTravelledEvent()
+		RegisteredAB[numRequests] = none
+		RegisteredDist[numRequests] = 0.0
+	;DEBUGTEXT("{Send S}", 0,  false, True)
 	endwhile
 	GoToState(previous)
-	if bEnableOffState && numRequests == 0		; should handle this in the on state only
-		toggle()
-	endif
+	UpdateState()
 endfunction
 ;___________________________________________________________________________________________________________________________
 
 ; Assumes array sorted. If passed reference is registered, shift the elements down and remove the last one [NEEDS TESTING]
 function UnregisterForEvent(INEQ_EventListenerBase akAsker)
-	int index = registeredAb.find(akAsker)
+;DEBUGTEXT("{Unreg S}", 0,  false, True)
+	int index = RegisteredAB.find(akAsker)
 	if index != -1
 		String previous = GetState()
 		GoToState("RegisterBusy")
 		index += 1
 		while index < numRequests
-			registeredAb[index - 1] = registeredAb[index]
-			registeredDist[index - 1] = registeredDist[index]
+			RegisteredAB[index - 1] = RegisteredAB[index]
+			RegisteredDist[index - 1] = RegisteredDist[index]
 			index += 1
 		endwhile
-		registeredAb[index - 1] = None
-		registeredDist[index - 1] = 0.0
+		RegisteredAB[index - 1] = None
+		RegisteredDist[index - 1] = 0.0
 		numRequests -= 1
 		GoToState(previous)
+		UpdateState()
 	endif
+;DEBUGTEXT("{Unreg E}", 0,  false, True)
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
 ; Registers an item and a distance by adding it to an array, then sorts the items by descending distance
 bool function RegisterForEvent(INEQ_EventListenerBase akAsker, float akDistance)
-	int index = registeredAb.find(akAsker)
+;DEBUGTEXT("{Reg S}", 0,  false, True)
+	String previous = GetState()
+	GoToState("RegisterBusy")
+	int index = RegisteredAB.find(akAsker)
 	if  index < 0
-		if numRequests == registeredAb.length
+		if numRequests == RegisteredAB.length
 			Debug.Trace(self+ ": Number of requests exceeded buffer or main array on adding " +akAsker)
 			return false
 		else
-			registeredAb[numRequests] = akAsker
-			registeredDist[numRequests] = TotalDistance.Value + akDistance
+			RegisteredAB[numRequests] = akAsker
+			RegisteredDist[numRequests] = TotalDistance.Value + akDistance
 			numRequests += 1
-			if bEnableOffState && numRequests == 1
-				toggle()
-			endif
 		endif
 	else
-		registeredAb[index] = akAsker
-		registeredDist[index] = TotalDistance.Value + akDistance
+		RegisteredAB[index] = akAsker
+		RegisteredDist[index] = TotalDistance.Value + akDistance
 	endif
 	sortDescending()	;sort array from farthest to closest so that the send event can poll the minimum number of indicies
+	GoToState(previous)
+	UpdateState()
+;DEBUGTEXT("{Reg E}", 0,  false, True)
 	return true
 endFunction
 ;___________________________________________________________________________________________________________________________
+;												Placeholder functions
+Function UpdateState()
+	Debug.Trace(Self+ " UpdateState called in state " +GetState())
+EndFunction
+
+;===============================================================================================================================
+;====================================		Helper Functions		================================================
+;================================================================================================
 
 ; Takes an array of INEQ_EvntListenerBase and shifts all elements towards 0
 function ShiftElementsDown(INEQ_EventListenerBase[] akListener, float[] akDistance = None)
@@ -327,7 +352,7 @@ function sortDescending()
 	while index1 < numRequests - 1
 		int index2 = index1 + 1
 		while index2 < numRequests
-			if registeredDist[index1] < registeredDist[index2]
+			if RegisteredDist[index1] < RegisteredDist[index2]
 				swap(index1, index2)
 			endif
 			index2 += 1
@@ -342,13 +367,13 @@ function swap(int a, int b)
 	INEQ_EventListenerBase tempAb
 	float tempDist
 	
-	tempAb = registeredAb[a]
-	registeredAb[a] = registeredAb[b]
-	registeredAb[b] = tempAb
+	tempAb = RegisteredAB[a]
+	RegisteredAB[a] = RegisteredAB[b]
+	RegisteredAB[b] = tempAb
 	
-	tempDist = registeredDist[a]
-	registeredDist[a] = registeredDist[b]
-	registeredDist[b] = tempDist
+	tempDist = RegisteredDist[a]
+	RegisteredDist[a] = RegisteredDist[b]
+	RegisteredDist[b] = tempDist
 endfunction
 ;___________________________________________________________________________________________________________________________
 
@@ -362,46 +387,21 @@ int function iMin(int a, int b)
 endFunction
 ;___________________________________________________________________________________________________________________________
 
-;for testing
-function printarray()
-	String s = "" +numRequests+ " [" +registeredDist[0]
-	int i = 1
-	while (i < numRequests)
-		s += ", " + registeredDist[i]
-		i += 1
-	endwhile
-	s += "]"
-	Debug.MessageBox(s)
-endfunction
-;___________________________________________________________________________________________________________________________
-
 ; Shifts total and registered distances towards zero in order to maintian preceision / prevent overload
 function floatPrecisionMaintenance()
 	int i = numRequests
 	while i > 0
 		i -= 1
-		registeredDist[i] = registeredDist[i] - TotalDistance.Value
+		RegisteredDist[i] = RegisteredDist[i] - TotalDistance.Value
 	endWhile
 	resetDistance()
 endFunction
 ;___________________________________________________________________________________________________________________________
 
+; Returns distance and milestone to base value
 function resetDistance()
 	TotalDistance.Value = 0.0
 	milestone = interval
-endfunction
-
-function fullReset()
-	resetDistance()
-	int i = registeredDist.length
-	while i > 0
-		i -= 1
-		registeredDist[i] = 0.0
-		registeredAb[i] = none
-	endwhile
-	numRequests = 0
-	bEnableOffState 	= True
-	bIncludeFastTravel	= True	
 endfunction
 ;___________________________________________________________________________________________________________________________
 
@@ -416,6 +416,59 @@ function setOffState(bool EnableOff)
 		GoToState("Active")
 	endif
 endfunction
+;___________________________________________________________________________________________________________________________
+
+; Debugging Function for testing using trace and/or messageboxes
+function DEBUGTEXT(String text, int type = -1,  bool dist = false, bool listener = false, bool MBox = False)
+	if bDebugTrace
+		String s = "" + GetState() + ":\t" ;+text
+		if GetState() == "off"
+			s += "\t\t"
+		elseif GetState() == "active"
+			s += "\t"
+		endif
+		s += text
+		if type != -1
+			if dist || listener
+				s += ":\tR:" +numRequests+ "\t"
+				if type == 0
+					s += "Register"
+				elseif type == 1
+					s += " Buffer "
+				elseif type == 2
+					s += "Unregstr"
+				endif
+			endif
+			if dist
+				if type == 0
+					;s += "[" +RegisteredDist[0]+ ", " +RegisteredDist[1]+ ", " +RegisteredDist[2]+ "]"
+					s += RegisteredDist
+				elseif type == 1
+					;s += "[" +BufferDist[0]+ ", " +BufferDist[1]+ ", " +BufferDist[2]+ "]"
+					s += BufferDist
+				endif
+			endif
+			if listener
+				if type == 0
+					;s += "\t[" +RegisteredAB[0]+ ", " +RegisteredAB[1]+ ", " +RegisteredAB[2]+ "]"
+					s += RegisteredAB
+				elseif type == 1
+					;s += "\t[" +BufferAB[0]+ ", " +BufferAB[1]+ ", " +BufferAB[2]+ "]"
+					s += BufferAB
+				elseif type == 2
+					;s += "[" +UnregisterAB[0]+ ", " +UnregisterAB[1]+ ", " +UnregisterAB[2]+ "]"
+					UnregisterAB
+				endif
+			endif
+		endif
+		Debug.Trace(s)
+	endif
+	if bDebugMessage
+		if MBox
+			Debug.Messagebox(text + "\n0) Dist:" +RegisteredDist[0]+   "\n1) Dist:" +RegisteredDist[1]+"\n2) Dist:" +RegisteredDist[2])
+		endif
+	endif
+endFunction
 
 ;===============================================================================================================================
 ;====================================		    Menus			================================================

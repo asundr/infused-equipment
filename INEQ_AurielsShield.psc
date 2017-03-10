@@ -40,11 +40,12 @@ int TimesHit
 Event OnEffectStart (Actor akTarget, Actor akCaster)
 	parent.EffectStart(akTarget, akCaster)
 	RestoreDefaultFields()
-	RefIsPlayer =	 SelfRef == Game.GetPlayer()
+	RefIsPlayer = ( SelfRef == Game.GetPlayer() )
 	RegisterAbilityToAlias()
 EndEvent
 
 Function RestoreDefaultFields()
+	parent.RestoreDefaultFields()
 	bBalanced 		=	True
 	TimesHit		=	0
 	LocalCharge		=	0
@@ -155,7 +156,7 @@ EndState
 ; Cast the apropriate spell on bash and removes charges. Possibly uses charges from SharedCharges
 Event OnAnimationEvent(ObjectReference akSource, string EventName)
 	if RefIsPlayer
-		if (eventName == BashRelease)
+		if EventName == BashRelease && SelfRef.GetActorValue("Stamina") > 0.0
 			if ChargeMode == 0
 				prioritizeShared()
 			elseif ChargeMode == 1

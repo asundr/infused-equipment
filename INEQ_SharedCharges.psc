@@ -2,14 +2,14 @@ Scriptname INEQ_SharedCharges extends INEQ_RechargeBase
 {Holds and transfers charges used by various abilities}
 
 ;===========================================  Properties  ===========================================================================>
-float	Property	ChargeDistance	=	110.0	Auto	Hidden
-float	Property	ChargeMagickaMP	=	150.0	Auto	Hidden
-int		Property	ChargeMagickaPR	=	10		Auto	Hidden
-int		Property	MaxCharges		=	5		Auto	Hidden
+float	Property	ChargeDistance			Auto	Hidden
+float	Property	ChargeMagickaMP			Auto	Hidden
+int		Property	ChargeMagickaPR			Auto	Hidden
+int		Property	MaxCharges				Auto	Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
-float	Property	DEFChargeDistance	=	2000.0	Autoreadonly
-float	Property	DEFChargeMagickaMP	=	150.0	Autoreadonly
+float	Property	DEFChargeDistance	=	1000.0	Autoreadonly
+float	Property	DEFChargeMagickaMP	=	400.0	Autoreadonly
 int		Property	DEFChargeMagickaPR	=	10		Autoreadonly
 int		Property	DEFMaxCharges		=	5		Autoreadonly
 
@@ -23,19 +23,24 @@ INEQ_SharedChargesListener EventListener
 ;====================================	    Maintenance			================================================
 ;================================================================================================
 
-; Registers for events on load if they should be active
 Event OnPlayerLoadGame()
 	parent.PlayerLoadGame()
 	RegisterForRecharge()
 EndEvent
 
 Function RestoreDefaultFields()
+	parent.RestoreDefaultFields()
 	bBalanced		= True
 	ChargeDistance	= DEFChargeDistance
 	ChargeMagickaMP	= DEFChargeMagickaMP
 	ChargeMagickaPR	= DEFChargeMagickaPR
 	MaxCharges		= DEFMaxCharges
 Endfunction
+
+Function FullReset()
+	parent.FullReset()
+	numCharges = 5
+EndFunction
 	
 ;===============================================================================================================================
 ;====================================			Functions			================================================
@@ -93,7 +98,7 @@ int function requestChargeUpTo(int iRequest, bool bExact = False)
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
-; Register for any recharge sources
+; Register with any recharge sources
 Function RegisterForRecharge(bool bForced = False)
 	RegisterForDistanceTravelledEvent(bForced)
 	RegisterForMagickaSiphonEvent(bForced)
@@ -156,7 +161,6 @@ Function ChargeMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu Listene
 			bBalanced = False
 		elseif aiButton == 3		; Charge Storage
 			MaxCharges = ListenerMenu.ChargeStorage(MaxCharges, DEFMaxCharges)
-			;RegisterForRecharge()
 		elseif aiButton == 4		; Distance Cost
 			ChargeDistance = ListenerMenu.DistanceTravelledCost(ChargeDistance, DEFChargeDistance)
 		elseif aiButton == 5		; Magicka Cost

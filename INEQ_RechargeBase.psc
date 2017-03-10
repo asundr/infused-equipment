@@ -18,16 +18,21 @@ EndEvent
 ;___________________________________________________________________________________________________________________________
 
 Function Init()
+	FullReset()
 EndFunction
 
+; Used to perform maintenence when the player loads
 Function PlayerLoadGame()
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
-Function Maintenance()
+; Restores menu-modifiable variables
+Function RestoreDefaultFields()
 EndFunction
 
-Function RestoreDefaultFields()
+; Used to initialize and reset Recharge Source
+Function FullReset()
+	RestoreDefaultFields()
 EndFunction
 
 ;===============================================================================================================================

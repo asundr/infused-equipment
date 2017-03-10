@@ -1,5 +1,5 @@
 Scriptname INEQ_AbilityRegister extends ReferenceAlias 
-{Allows access to the abilities and mod options via menus}
+{Core script that handles plugins, abilities and mod options via menus}
 
 ;===========================================  Properties  ===========================================================================>
 ReferenceAlias	Property	Alias_Shield001	Auto
@@ -52,10 +52,11 @@ Actor		Property	SelfRef				Auto
 float	Property	InfuseTimout	=	5.0		Autoreadonly
 
 ;===========================================  Variables  ============================================================================>
-bool bInfusionBusy
-
-bool property bMaintenanceBusy = false auto
-int property iPluginRegisterPending = 0 auto
+bool bInfusionBusy			= False
+bool bMaintenanceBusy		= False
+bool bPluginRegistered		= False
+bool bPluginRemoved			= False
+int  iPluginRegisterPending	= 0
 
 INEQ_MenuButtonConditional	Button
 INEQ_ListenerMenu			ListenerMenu
@@ -80,109 +81,128 @@ Event OnInit()
 	Equipment[5] = Alias_Body001 	as INEQ_EquipmentScript
 	Equipment[6] = Alias_Hands001 	as INEQ_EquipmentScript
 	Equipment[7] = Alias_Feet001 	as INEQ_EquipmentScript
-	makeRechargeList()
+	if iPluginRegisterPending == 0
+		makeRechargeList()
+	endif
+	Debug.Trace("[INEQ] Core initiated")
 EndEvent
+;___________________________________________________________________________________________________________________________
 
 Event OnPlayerLoadGame()
+	Utility.Wait(0.01)
 	if !bMaintenanceBusy && !iPluginRegisterPending
 		Maintenance()
 	endif
 EndEvent
-
-Function attemptMaintenance()
-	if iPluginRegisterPending > 1
-		iPluginRegisterPending -= 1
-		return
-	endif
-	GoToState("MaintenanceBusy")
-	RegisterForSingleUpdate(0.1)
-endfunction
+;___________________________________________________________________________________________________________________________
 
 State MaintenanceBusy
 
+	; Waits until a plugin all currently installing plugins are installed, then calls maintenance() 
 	Event OnUpdate()
 		if bMaintenanceBusy || iPluginRegisterPending > 1
 			RegisterForSingleUpdate(1.0)
 		else
-			GoToState("")
 			iPluginRegisterPending -= 1
 			maintenance()
 		endif
 	EndEvent
 	
+	; Overrides of menu shortcut funcitons to prevent ineference with maintenence()
 	Function MainMenu()
 		Debug.Notification("Updating INEQ plugins, please wait...")
 	endFunction
-	
 	Function StartRegister()
 		Debug.Notification("Updating INEQ plugins, please wait...")
 	endFunction
-
 	Function StartUnlocking()
 		Debug.Notification("Updating INEQ plugins, please wait...")
 	Endfunction
-
 	Function StartSelectAbilities()
 		Debug.Notification("Updating INEQ plugins, please wait...")
 	endFunction
-
 	Function StartAbilityOptions()
 		Debug.Notification("Updating INEQ plugins, please wait...")
 	EndFunction
-
 	Function StartChargeOptions()
 		Debug.Notification("Updating INEQ plugins, please wait...")
 	EndFunction
-
 	Function StartOtherOptions()
 		Debug.Notification("Updating INEQ plugins, please wait...")
 	EndFunction
 
 EndState
+;___________________________________________________________________________________________________________________________
 
+; Called by plugins to ensure maintenance() is only called once when a plugin is added
+Function PluginInstallStart()
+	if !bPluginRegistered
+		bPluginRegistered = True
+	endif
+	iPluginRegisterPending += 1
+Endfunction
+;___________________________________________________________________________________________________________________________
+
+; Called after plugin has been installed, first call initiates a pending call to maintenance()
+Function PluginInstallFinish()
+	if 	iPluginRegisterPending > 1
+		iPluginRegisterPending -= 1
+		return
+	else
+		Debug.Notification("Installing new INEQ plugin(s)...")
+	endif
+	GoToState("MaintenanceBusy")
+	RegisterForSingleUpdate(0.1)
+endfunction
+;___________________________________________________________________________________________________________________________
+
+; Cleans formlists, refreshes recharge list and triggers maintenence on equipment slots
 Function maintenance()
 	bMaintenanceBusy = True
-	Debug.Trace("maintenance Start")
-
-	RemoveNonesFromList(AbilityToPlayerList, "ATP")
-
-	RemoveNonesFromList(RechargeQuestlist, "RC")
+	Debug.Trace("[INEQ] Maintenance start...")
+	
+	RemoveNonesFromList(AbilityToPlayerList)
+	RemoveNonesFromList(RechargeQuestlist)
 	
 	; Referesh Equipment ability lists
 	int i = Equipment.length
 	while i > 0
 		i -= 1
-		RemoveNonesFromList(Equipment[i].AbilityQuestList, "ES")
+		RemoveNonesFromList(Equipment[i].AbilityQuestList)
 		Equipment[i].maintenance()
 	endwhile
+	
 	makeRechargeList()
 	
-	Debug.Trace("Maintenence finished")
+	; Notifies player of any update to INEQ plugins
+	if bPluginRegistered || bPluginRemoved
+		bPluginRemoved = False
+		bPluginRegistered = False
+		Debug.Notification("INEQ plugins have been updated!")
+	endif
+	
 	bMaintenanceBusy = False
+	Debug.Trace("[INEQ] Maintenance finished")
+	GoToState("")
 EndFunction
+;___________________________________________________________________________________________________________________________
 
-function traceformlist(Formlist list, String s)
-	int size = list.getsize()
-	s += " " + iPluginRegisterPending + " " + size + " ["
+; Removes None entries from a Formlist (due to removing plugins)
+Function RemoveNonesFromList(Formlist list)
 	int i = 0
-	while i < size
-		s += list.getat(i) + ", "
-		i += 1
-	endwhile
-	Debug.trace(s + "]")
-Endfunction
-
-Function RemoveNonesFromList(Formlist list, String s)
-	int i = 0
-	int size = list.getSize()
 	if  !list.getAt(i)
-	
-		traceformlist(list, s)
-	
-		Quest[] QuestArr = new Quest[16]
+		; Notifies player if plugin has been removed
+		if !bPluginRemoved
+			bPluginRemoved = True
+			Debug.Notification("INEQ plugin(s) have been removed...")
+			Debug.Trace("[INEQ] Cleaning removed plugins from Formlists")
+		endif
 		
+		; Stores Quests from a list into an array, then reverts the form
+		Quest[] QuestArr = new Quest[16]
 		int count = 1
 		i += 1
+		int size = list.getSize()
 		while i < size
 			if list.getAt(i)
 				QuestArr[i - count] = list.getAt(i) as Quest
@@ -191,23 +211,18 @@ Function RemoveNonesFromList(Formlist list, String s)
 			endif
 			i += 1
 		endwhile
-		
 		list.Revert()
 		
+		; Adds the previously stored Quests back to the Formlist
 		i = 1
 		size -= count
 		while i < size
 			list.Addform(QuestArr[i])
 			i += 1
 		endwhile
-		
-		traceformlist(list, s)
-		
 	endif	
-
 EndFunction
-
-
+;___________________________________________________________________________________________________________________________
 
 ; Refresh Recharge alias list
 Function makeRechargeList()
@@ -590,7 +605,7 @@ State ChargeOptions
 				Button.Set(index + 1)
 			endif
 		endwhile
-		if belowMax	; Enable next button
+		if belowMax	; Next button
 			Button.Set(9)
 		endif
 	EndFunction
@@ -627,7 +642,7 @@ State OtherOptions
 					Debug.Notification("All abilities have been completely reset and must be unlocked again")
 				elseif aiButton == 1
 					FullResetAll()
-					Debug.Notification("Everything except for learned abilities has been reset")
+					Debug.Notification("Everything except for learned abilities have been reset")
 				endif
 			elseif aiButton == 5 
 				CheatMode.SetValue(1)
@@ -674,7 +689,6 @@ Function RestoreDefaultsAll()
 			RechargeList[index].RestoreDefaultFields()
 		endif
 	endwhile
-	
 	index = Equipment.length
 	while index > 0
 		index -= 1
@@ -685,6 +699,7 @@ EndFunction
 
 ; Deactivates (and locks) abilities, then stops and starts every quest to reset
 function FullResetAll(bool bLock = False)
+	Debug.Trace("[INEQ] Full reset start...")
 	CheatMode.SetValue(1)
 	ActivateAll()
 	formlist[] EquipmentQuests = new formlist[8]
@@ -696,14 +711,19 @@ function FullResetAll(bool bLock = False)
 	endwhile
 	CheatMode.SetValue(0)
 	
-	RestoreDefaultsAll()
-	
 	Alias_Sword001.GetOwningQuest().stop()
 
 	i = EquipmentQuests.length
 	while i > 0
 		i -= 1
 		StopQuestFormlist(EquipmentQuests[i])
+	endwhile
+	
+	i = 0
+	int max = RechargeList.length
+	while i < max && RechargeList[i]
+		RechargeList[i].FullReset()
+		i += 1
 	endwhile
 	
 	StopQuestFormlist(AbilityToPlayerList)
@@ -719,31 +739,34 @@ function FullResetAll(bool bLock = False)
 	endwhile
 	
 	Alias_Sword001.GetOwningQuest().start()
+	Debug.Trace("[INEQ] Full reset finished")
 endFunction
 ;___________________________________________________________________________________________________________________________
 
+; Stops every Quest in a Formlist
 Function StopQuestFormlist(Formlist list)
-	String s = "["
+;	String s = "["
 	int i = list.GetSize()
 	while i > 0
 		i -= 1
-		s += list.GetAt(i) + ", "
+;		s += list.GetAt(i) + ", "
 		(list.GetAt(i) as Quest).Stop()
 	endwhile
 ;	Debug.Trace(s + "]")
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
+; Starts every Quest in a Formlist
 Function StartQuestFormlist(Formlist list)
-	String s = "["
+;	String s = "["
 	int i = 0
 	int max = list.GetSize()
 	while i < max
-		s += list.GetAt(i) + ", "
+;		s += list.GetAt(i) + ", "
 		(list.GetAt(i) as Quest).Start()
 		i += 1
 	endwhile
-	Debug.Trace(s + "]")
+;	Debug.Trace(s + "]")
 EndFunction
 
 ;===============================================================================================================================
@@ -809,3 +832,16 @@ EndFunction
 Function StartOtherOptions()
 	GoToState("OtherOptions")
 EndFunction
+;___________________________________________________________________________________________________________________________
+
+; Prints the contents of a Formlist to the Papyrus log
+function TraceFormlist(Formlist list, String s)
+	int size = list.getsize()
+	s += " " + iPluginRegisterPending + " " + size + " ["
+	int i = 0
+	while i < size
+		s += list.getat(i) + ", "
+		i += 1
+	endwhile
+	Debug.trace(s + "]")
+Endfunction

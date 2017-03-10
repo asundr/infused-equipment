@@ -10,7 +10,6 @@ Message	Property	ChargeStorageMenu	Auto
 Message	Property	ChargeCostMenu		Auto
 Message Property	TimeOptions			Auto
 Message	Property	PercentageMenu		Auto
-
 ;==========================================  Autoreadonly  ==========================================================================>
 
 ;===========================================  Variables  ============================================================================>
@@ -30,33 +29,32 @@ EndEvent
 
 int Function ChargeCost(int value, int default = 100)
 	int aiButton
-	int modifier = 0
 	while True
-		Debug.Notification("Currrent charge cost: " +(value + modifier))
+		Debug.Notification("Currrent charge cost: " +value)
 		aiButton = ChargeCostMenu.Show()
 		if aiButton == 0
-			return value + modifier
+			return value
 		elseif aiButton == 1
-			modifier -= 50
+			value -= 50
 		elseif aiButton == 2
-			modifier -= 10
+			value -= 10
 		elseif aiButton == 3
-			modifier -= 5
+			value -= 5
 		elseif aiButton == 4
-			modifier -= 1
+			value -= 1
 		elseif aiButton == 5
-			modifier += 1
+			value += 1
 		elseif aiButton == 6
-			modifier += 5
+			value += 5
 		elseif aiButton == 7
-			modifier += 10
+			value += 10
 		elseif aiButton == 8
-			modifier += 50
+			value += 50
 		elseif aiButton == 9
-			modifier = default - value
+			value = default
 		endif
-		if value + modifier < 1
-			modifier = 1 - value
+		if value < 1
+			value = 1
 		endif
 	endwhile
 EndFunction
@@ -65,33 +63,32 @@ EndFunction
 
 int Function ChargeStorage(int value, int default = 5)
 	int aiButton
-	int modifier = 0
 	while True
-		Debug.Notification("Currrent local charge storage: " +(value + modifier))
+		Debug.Notification("Currrent local charge storage: " +value)
 		aiButton = ChargeStorageMenu.Show()
 		if aiButton == 0
-			return value + modifier
+			return value
 		elseif aiButton == 1
-			modifier -= 50
+			value -= 50
 		elseif aiButton == 2
-			modifier -= 10
+			value -= 10
 		elseif aiButton == 3
-			modifier -= 5
+			value -= 5
 		elseif aiButton == 4
-			modifier -= 1
+			value -= 1
 		elseif aiButton == 5
-			modifier += 1
+			value += 1
 		elseif aiButton == 6
-			modifier += 5
+			value += 5
 		elseif aiButton == 7
-			modifier += 10
+			value += 10
 		elseif aiButton == 8
-			modifier += 50
+			value += 50
 		elseif aiButton == 9
-			modifier = default - value
+			value = default
 		endif
-		if value + modifier < 1
-			modifier = 1 - value
+		if value < 1
+			value = 1
 		endif
 	endwhile
 EndFunction
@@ -133,7 +130,7 @@ EndFunction
 float Function MagickaSiphonCost(float value, float default = 10.0)
 	int aiButton
 	while True
-		Debug.Notification("Currrent magicka siphon cost: " +value+ " MP")
+		Debug.Notification("Currrent magicka siphon cost: " +(value as int)+ " MP")
 		aiButton = RechargeMagickaMenu.Show()
 		if aiButton == 0
 			return value
@@ -166,7 +163,7 @@ EndFunction
 float Function DistanceTravelledCost(float value, float default = 100.0)
 	int aiButton
 	while True
-		Debug.Notification("Currrent recharge distance: " +value+ " feet")
+		Debug.Notification("Currrent recharge distance: " +(value as int)+ " feet")
 		aiButton = RechargeDistanceMenu.Show()
 		if aiButton == 0
 			return value

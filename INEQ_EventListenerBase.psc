@@ -54,11 +54,10 @@ Function EffectFinish(Actor akTarget, Actor akCaster)
 	UnregisterForMagickaSiphonEvent()
 EndFunction
 
+; Used to perform maintenence when the player loads
 Function PlayerLoadGame()
 EndFunction
-
-Function Maintenance()
-EndFunction
+;___________________________________________________________________________________________________________________________
 
 Function RestoreDefaultFields()
 EndFunction
@@ -68,7 +67,7 @@ EndFunction
 ;================================================================================================
 ; INEQ_DistanceTravelled
 Function OnDistanceTravelledEvent()
-	Debug.Trace(self+ ": Could not find DistanceTravelledEvent override on Requester")
+	Debug.Trace(self+ ": Could not find DistanceTravelledEvent override in state " +GetState())
 EndFunction
 
 function RegisterForDistanceTravelledEvent(float akDistance, bool bForced = False)
@@ -91,7 +90,7 @@ EndFunction
 
 ; INEQ_MagickaSiphon
 Function OnMagickaSiphonEvent()
-	Debug.Trace(self+ ": Could not find OnMagickaSiphonEvent override on Requester")
+	Debug.Trace(self+ ": Could not find OnMagickaSiphonEvent override in state " +GetState())
 EndFunction
 
 function RegisterForMagickaSiphonEvent(float akMagicka, int akPriority, bool bForced = False)
