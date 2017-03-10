@@ -18,7 +18,6 @@ EndEvent
 ;___________________________________________________________________________________________________________________________
 
 Function Init()
-	;SelfRef = GetReference() as Actor
 EndFunction
 
 Function PlayerLoadGame()

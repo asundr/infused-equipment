@@ -52,7 +52,10 @@ Actor		Property	SelfRef				Auto
 float	Property	InfuseTimout	=	5.0		Autoreadonly
 
 ;===========================================  Variables  ============================================================================>
-bool isBusy
+bool bInfusionBusy
+
+bool property bMaintenanceBusy = false auto
+int property iPluginRegisterPending = 0 auto
 
 INEQ_MenuButtonConditional	Button
 INEQ_ListenerMenu			ListenerMenu
@@ -65,7 +68,6 @@ INEQ_RechargeBase[]			RechargeList
 ;================================================================================================
 
 Event OnInit()
-;	SelfRef = self.GetReference() as Actor
 	Button = MainQuest as INEQ_MenuButtonConditional
 	ListenerMenu = MainQuest as INEQ_ListenerMenu
 	Equipment = new INEQ_EquipmentScript[8]
@@ -82,18 +84,130 @@ Event OnInit()
 EndEvent
 
 Event OnPlayerLoadGame()
-	maintenance()
+	if !bMaintenanceBusy && !iPluginRegisterPending
+		Maintenance()
+	endif
 EndEvent
 
+Function attemptMaintenance()
+	if iPluginRegisterPending > 1
+		iPluginRegisterPending -= 1
+		return
+	endif
+	GoToState("MaintenanceBusy")
+	RegisterForSingleUpdate(0.1)
+endfunction
+
+State MaintenanceBusy
+
+	Event OnUpdate()
+		if bMaintenanceBusy || iPluginRegisterPending > 1
+			RegisterForSingleUpdate(1.0)
+		else
+			GoToState("")
+			iPluginRegisterPending -= 1
+			maintenance()
+		endif
+	EndEvent
+	
+	Function MainMenu()
+		Debug.Notification("Updating INEQ plugins, please wait...")
+	endFunction
+	
+	Function StartRegister()
+		Debug.Notification("Updating INEQ plugins, please wait...")
+	endFunction
+
+	Function StartUnlocking()
+		Debug.Notification("Updating INEQ plugins, please wait...")
+	Endfunction
+
+	Function StartSelectAbilities()
+		Debug.Notification("Updating INEQ plugins, please wait...")
+	endFunction
+
+	Function StartAbilityOptions()
+		Debug.Notification("Updating INEQ plugins, please wait...")
+	EndFunction
+
+	Function StartChargeOptions()
+		Debug.Notification("Updating INEQ plugins, please wait...")
+	EndFunction
+
+	Function StartOtherOptions()
+		Debug.Notification("Updating INEQ plugins, please wait...")
+	EndFunction
+
+EndState
+
 Function maintenance()
+	bMaintenanceBusy = True
+	Debug.Trace("maintenance Start")
+
+	RemoveNonesFromList(AbilityToPlayerList, "ATP")
+
+	RemoveNonesFromList(RechargeQuestlist, "RC")
+	
 	; Referesh Equipment ability lists
 	int i = Equipment.length
 	while i > 0
 		i -= 1
+		RemoveNonesFromList(Equipment[i].AbilityQuestList, "ES")
 		Equipment[i].maintenance()
 	endwhile
 	makeRechargeList()
+	
+	Debug.Trace("Maintenence finished")
+	bMaintenanceBusy = False
 EndFunction
+
+function traceformlist(Formlist list, String s)
+	int size = list.getsize()
+	s += " " + iPluginRegisterPending + " " + size + " ["
+	int i = 0
+	while i < size
+		s += list.getat(i) + ", "
+		i += 1
+	endwhile
+	Debug.trace(s + "]")
+Endfunction
+
+Function RemoveNonesFromList(Formlist list, String s)
+	int i = 0
+	int size = list.getSize()
+	if  !list.getAt(i)
+	
+		traceformlist(list, s)
+	
+		Quest[] QuestArr = new Quest[16]
+		
+		int count = 1
+		i += 1
+		while i < size
+			if list.getAt(i)
+				QuestArr[i - count] = list.getAt(i) as Quest
+			else
+				count += 1
+			endif
+			i += 1
+		endwhile
+		
+		list.Revert()
+		
+		i = 1
+		size -= count
+		while i < size
+			list.Addform(QuestArr[i])
+			i += 1
+		endwhile
+		
+		traceformlist(list, s)
+		
+	endif	
+
+EndFunction
+
+
 
 ; Refresh Recharge alias list
 Function makeRechargeList()
@@ -161,7 +275,7 @@ State Register
 	;___________________________________________________________________________________________________________________________
 
 	Event OnUpdate()
-		if !isBusy
+		if !bInfusionBusy
 			Debug.Notification("Infusion timed out")
 			GoToState("")
 		endif
@@ -169,7 +283,7 @@ State Register
 	;___________________________________________________________________________________________________________________________
 
 	Event OnItemRemoved(Form akBaseItem, int aiItemCount, ObjectReference akItemReference, ObjectReference akDestContainer)
-		isBusy = True
+		bInfusionBusy = True
 		if 	(akBaseItem as Armor)
 			if akItemReference.HasKeyword(ArmorShield)
 				ForceRefIfActive(Alias_Shield001, akItemReference)
@@ -196,7 +310,7 @@ State Register
 			endif
 		endif
 		SelfRef.AddItem(akItemReference, 1, True)
-		isBusy = False
+		bInfusionBusy = False
 		UnregisterForUpdate()
 		GoToState("")
 	EndEvent
@@ -571,16 +685,16 @@ EndFunction
 
 ; Deactivates (and locks) abilities, then stops and starts every quest to reset
 function FullResetAll(bool bLock = False)
-	CheatMode.SetValue(0)
-	
+	CheatMode.SetValue(1)
+	ActivateAll()
 	formlist[] EquipmentQuests = new formlist[8]
 	int i = Equipment.length
 	while i > 0
 		i -= 1
 		EquipmentQuests[i] = Equipment[i].AbilityQuestList
 		Equipment[i].FullReset(bLock)
-		Equipment[i].clear()
 	endwhile
+	CheatMode.SetValue(0)
 	
 	RestoreDefaultsAll()
 	
@@ -609,21 +723,27 @@ endFunction
 ;___________________________________________________________________________________________________________________________
 
 Function StopQuestFormlist(Formlist list)
+	String s = "["
 	int i = list.GetSize()
 	while i > 0
 		i -= 1
+		s += list.GetAt(i) + ", "
 		(list.GetAt(i) as Quest).Stop()
 	endwhile
+;	Debug.Trace(s + "]")
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
 Function StartQuestFormlist(Formlist list)
+	String s = "["
 	int i = 0
 	int max = list.GetSize()
 	while i < max
+		s += list.GetAt(i) + ", "
 		(list.GetAt(i) as Quest).Start()
 		i += 1
 	endwhile
+	Debug.Trace(s + "]")
 EndFunction
 
 ;===============================================================================================================================
