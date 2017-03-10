@@ -7,13 +7,13 @@ Message		Property	MainMenu	Auto
 Spell		Property	RuneSpell		Auto
 Activator	Property	ProximityCheck	Auto
 
-bool	Property	bBalanced	=	True	Auto	Hidden
+bool	Property	bBalanced	Auto	Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
 String  Property  BashExit  = 	"bashExit"  	Autoreadonly			; End bashing
 
 ;===========================================  Variables  ============================================================================>
-bool bCheckProximity = True
+bool bCheckProximity
 
 ;===============================================================================================================================
 ;====================================	    Maintenance			================================================
@@ -25,8 +25,8 @@ Event OnEffectStart(Actor akTarget, Actor akCaster)
 EndEvent
 
 Function RestoreDefaultFields()
-	bBalanced = True
-	bCheckProximity = True
+	bBalanced		= True
+	bCheckProximity	= True
 EndFunction
 
 ;===============================================================================================================================
@@ -114,7 +114,6 @@ Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu Listen
 		elseif aiButton == 9		; Cancel menu
 			MenuActive.SetValue(0)
 		elseif aiButton == 1		; Turn on Balanced
-			bBalanced = True
 			RestoreDefaultFields()
 		elseif aiButton == 2		; Turn off Balanced
 			bBalanced = False

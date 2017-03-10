@@ -1,5 +1,5 @@
 ScriptName	INEQ_ListenerMenu	extends	Quest
-{}
+{Library of reusable menus to modify common properties}
 
 ;===========================================  Properties  ===========================================================================>
 Message	Property	ChargeModeMenu		Auto
@@ -11,6 +11,9 @@ Message	Property	ChargeCostMenu		Auto
 Message Property	TimeOptions			Auto
 Message	Property	PercentageMenu		Auto
 
+;==========================================  Autoreadonly  ==========================================================================>
+
+;===========================================  Variables  ============================================================================>
 INEQ_MenuButtonConditional Button
 
 ;===============================================================================================================================

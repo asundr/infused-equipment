@@ -14,12 +14,10 @@ Sound Property ChargSound Auto
 ImagespaceModifier Property ChargeIMod Auto
 ImagespaceModifier Property BlastIMod Auto
 
-ReferenceAlias	Property	SharedChargesAlias	Auto
+bool	Property	bBalanced	Auto	Hidden
 
-bool	Property	bBalanced	=	True	Auto	Hidden
-
-Int Property	ChargeMode		=	1	Auto	Hidden	;(0==prioritize shared charges, 1=prioritize local, 2= use local only)
-Int Property	ChargeInterval	=	5	Auto	Hidden
+Int Property	ChargeMode		Auto	Hidden	;(0==prioritize shared charges, 1=prioritize local, 2= use local only)
+Int Property	ChargeInterval	Auto	Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
 Int Property	NumStages			=	3	Autoreadonly
@@ -35,8 +33,6 @@ String  Property  BashRelease =	"bashRelease"	Autoreadonly		; power bashing
 bool RefIsPlayer
 int TimesHit
 
-INEQ_SharedCharges SharedCharges
-
 ;===============================================================================================================================
 ;====================================	    Maintenance			================================================
 ;================================================================================================
@@ -44,12 +40,12 @@ INEQ_SharedCharges SharedCharges
 Event OnEffectStart (Actor akTarget, Actor akCaster)
 	parent.EffectStart(akTarget, akCaster)
 	RestoreDefaultFields()
-	RefIsPlayer = SelfRef == Game.GetPlayer()
-	SharedCharges = SharedChargesAlias as INEQ_SharedCharges
+	RefIsPlayer =	 SelfRef == Game.GetPlayer()
 	RegisterAbilityToAlias()
 EndEvent
 
 Function RestoreDefaultFields()
+	bBalanced 		=	True
 	TimesHit		=	0
 	LocalCharge		=	0
 	ChargeInterval	=	DEFChargeInterval
@@ -184,17 +180,17 @@ EndEvent
 
 ; Uses any shared charges and -- if less than  the top spell cost -- any aditional local charges
 function prioritizeShared()
-	int total = SharedCharges.requestChargeUpTo(NumStages)
+	int total = RequestSharedChargeUpTo(NumStages)
 	total += removeLocalChargeUpTo(NumStages - total)
 	castBashSpell(total)
-	UpdateShieldVisuals(localCharge + SharedCharges.getCharge())
+	UpdateShieldVisuals(localCharge + GetSharedCharge())
 Endfunction
 
 ; Uses any local charges first. If localCharge = 0,  uses shared charges instead
 function prioritizeLocal()
 	int total = removeLocalChargeUpTo(NumStages)
 	if total == 0
-		total = SharedCharges.requestChargeUpTo(NumStages)
+		total = RequestSharedChargeUpTo(NumStages)
 	endif
 	castBashSpell(total)
 	UpdateShieldVisuals()
@@ -228,7 +224,7 @@ endFunction
 function AddCharge(int num = 1)
 	LocalCharge += num
 	if LocalCharge > MaxLocalCharge
-		SharedCharges.AddCharge(LocalCharge - MaxLocalCharge)
+		AddSharedCharge(LocalCharge - MaxLocalCharge)
 		LocalCharge = MaxLocalCharge
 	else
 		UpdateShieldVisuals()
@@ -295,7 +291,7 @@ Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu Listen
 		elseif aiButton == 9	; Cancel Menu
 			MenuActive.SetValue(0)
 		elseif aiButton == 1	; Turn on Balanced (Magicka Based)
-			bBalanced = True
+			RestoreDefaultFields()
 		elseif aiButton == 2	; Turn off Balanced (Cooldown Based)
 			bBalanced = False
 		elseif aiButton == 3	; Charge Mode

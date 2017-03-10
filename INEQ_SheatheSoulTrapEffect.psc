@@ -4,16 +4,16 @@ Scriptname INEQ_SheatheSoulTrapEffect extends activemagiceffect
 ;===========================================  Properties  ===========================================================================>
 Formlist	Property	DisintegrationMainImmunityList	Auto
 
-Sound	Property	TrapSoundFX	Auto ; create a sound property we'll point to in the editor
+Sound			Property	TrapSoundFX	Auto ; create a sound property we'll point to in the editor
 
 EffectShader	Property	TargetFXS	Auto
 VisualEffect	Property	TargetVFX	Auto
 VisualEffect	Property	CasterVFX	Auto
 
 VisualEffect	Property	MGTeleportOutEffect	Auto
-Sound		Property	QSTDwemerGong	Auto
-Spell	Property	VisualSpell	Auto
-Activator	Property	AshPileObject	Auto
+Sound			Property	QSTDwemerGong		Auto
+Spell			Property	VisualSpell			Auto
+Activator		Property	AshPileObject		Auto
 
 ReferenceAlias	Property	SharedChargesAlias	Auto
 

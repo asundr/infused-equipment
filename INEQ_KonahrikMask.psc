@@ -11,12 +11,12 @@ Spell	Property	rareSpell		Auto
 MagicEffect	Property	DragonPriestMaskFireCloakFFSelf	Auto
 MagicEffect	Property	rareEffect						Auto
 
-float	Property	HPthreshold			=	0.10	Auto	Hidden
-float	Property	EffectChance		= 	0.10	Auto	Hidden
-float	Property	RareEffectChance	=	0.02	Auto	Hidden
-float	Property	CooldownTime		=	60.0	Auto	Hidden
+float	Property	HPthreshold			Auto	Hidden
+float	Property	EffectChance		Auto	Hidden
+float	Property	RareEffectChance	Auto	Hidden
+float	Property	CooldownTime		Auto	Hidden
 
-bool	Property	bBalanced	=	True	Auto	Hidden
+bool	Property	bBalanced			Auto	Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
 Float	Property	DEFHPThreshold		=	0.10	Autoreadonly	; vanilla 0.20
@@ -26,7 +26,7 @@ Float	Property	DEFRareEffectChance	=	0.02	Autoreadonly	; vanilla 0.05
 Float	Property	DEFCooldownTime		=	60.0	Autoreadonly	; flamecloak 60s long
 
 ;===========================================  Variables  ============================================================================>
-bool bCharged = True
+bool bCharged
 
 ;===============================================================================================================================
 ;====================================	    Maintenance			================================================
@@ -39,11 +39,11 @@ EndEvent
 
 Function RestoreDefaultFields()
 	bBalanced		= True
+	bCharged		= True
 	HPthreshold		= DEFHPThreshold
 	EffectChance	= DEFEffectChance
 	RareEffectChance= DEFRareEffectChance
 	CooldownTime	= DEFCooldownTime
-	bCharged		= False
 EndFunction
 
 ;===============================================================================================================================
@@ -103,7 +103,6 @@ Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu Listen
 		elseif aiButton == 9		; Cancel Menu
 			MenuActive.SetValue(0)
 		elseif aiButton == 1		; Turn on Balanced
-			bBalanced = True
 			RestoreDefaultFields()
 		elseif aiButton == 2		; Turn off Balanced
 			bBalanced = False

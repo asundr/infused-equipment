@@ -1,24 +1,21 @@
-Scriptname INEQ_DistanceTravelled extends ReferenceAlias 
+Scriptname INEQ_DistanceTravelled extends INEQ_RechargeBase 
 {Registeres distances from objects and notifies the objects when the distance is traversed}
 
 ;===========================================  Properties  ===========================================================================>
-GlobalVariable Property TotalDistance auto
-; reset numberGV for when totaldistance gets too large/impresise
+GlobalVariable Property TotalDistance auto	; reset numberGV for when totaldistance gets too large/impresise
 
 Static Property XMarker	Auto
 
+;==========================================  Autoreadonly  ==========================================================================>
 String	Property  Step		=  "FootRight"  Autoreadonly		; any movement with right foot
 String	Property  JumpEnd	=  "JumpDown"  	Autoreadonly		; jumping landing animation
 String  Property  GetUp		=  "GetUpEnd"	Autoreadonly		; getting up after ragdoll
 
-float	Property	interval 	= 	100.0	Autoreadonly		; distance interval to send events... might not be necessary since send events will usually only check once
-
+float	Property	interval 			= 	100.0		Autoreadonly	; distance interval to send events... might not be necessary since send events will usually only check once
 float	Property	MaxDistanceStep		=	1000.0		Autoreadonly	; in units. accounts for teleporting doors. Could probably be lower, but players might want to increase speedmult
 float	Property	MaxDistanceTravel	=	100000000.0	Autoreadonly	; in units. accounts for teleporting doors if bIncludeFastTravl = true. Skyrim's largest end to end is 62,115 units
 
-
 ;===========================================  Variables  ============================================================================>
-Actor 	SelfRef
 ObjectReference LastPosition
 
 float milestone = 0.0
@@ -42,23 +39,35 @@ int numUnregistered = 0
 ;================================================================================================
 
 Event OnInit()
-	selfRef = GetReference() as Actor
+	parent.Init()
 	TotalDistance.SetValue(0)
-	
 	registeredAb = new INEQ_EventListenerBase[16]		; NOTE: should probably increase or provide a function to incrase array size if necesary
 	registeredDist = new float[16]
-	
 	bufferAb = new INEQ_EventListenerBase[16]
 	bufferDist = new float[16]
-	
 	UnregisterAB = new INEQ_EventListenerBase[16]
-		
 	GoToState("Off")
 EndEvent
+
+Function RestoreDefaultFields()
+	bEnableOffState		= True
+	bIncludeFastTravel	= True
+EndFunction
 
 ;===============================================================================================================================
 ;====================================			States			================================================
 ;================================================================================================
+
+State Off
+
+	bool function toggle()
+		GoToState("Active")
+		return true
+	endFunction
+	
+EndState
+
+;___________________________________________________________________________________________________________________________
 
 State Active
 
@@ -93,7 +102,6 @@ State Active
 	EndEvent
 	
 	bool Function toggle()
-		;Debug.Notification("Entering Off")
 		GoToState("Off")
 		return false
 	endFunction
@@ -209,18 +217,6 @@ State RegisterBusy
 	
 	EndEvent
 
-EndState
-
-;___________________________________________________________________________________________________________________________
-
-State Off
-
-	bool function toggle()
-		;Debug.Notification("Entering On")
-		GoToState("Active")
-		return true
-	endFunction
-	
 EndState
 
 ;===============================================================================================================================
@@ -423,17 +419,54 @@ endfunction
 ;___________________________________________________________________________________________________________________________
 
 ; make into full properties?
-function setOffState(bool bOff = true)
-	bEnableOffState = bOff
-	if bOff
+function setOffState(bool EnableOff)
+	bEnableOffState = EnableOff
+	if EnableOff
 		if !numRequests
 			GoToState("Off")
 		endif
-	else
+	elseif GetState() == "Off"
 		GoToState("Active")
 	endif
 endfunction
 
-function setIncludeFastTravel(bool bEnable = true)
-	bIncludeFastTravel = bEnable
-endfunction
+;===============================================================================================================================
+;====================================		    Menus			================================================
+;================================================================================================
+
+Function ChargeMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu, GlobalVariable MenuActive)
+	bool abMenu = True
+	int aiButton
+	while abMenu && MenuActive.Value
+		SetButtonMain(Button)
+		aiButton = MainMenu.Show()
+		if aiButton == 0
+			abMenu = False
+		elseif aiButton == 9		; Cancel menu
+			MenuActive.SetValue(0)
+		elseif aiButton == 1		; Enable Off State
+			setOffState(True)
+		elseif aiButton == 2		; Disable Off State
+			setOffState(False)
+		elseif aiButton == 3		; Turn on IncludeFastTravel
+			bIncludeFastTravel = True
+		elseif aiButton == 4		; Turn off IncludeFastTravel
+			bIncludeFastTravel = False
+		endif
+	endwhile
+EndFunction
+
+Function SetButtonMain(INEQ_MenuButtonConditional Button)
+	Button.clear()
+	if bEnableOffState
+		Button.set(2)
+	else
+		Button.set(1)
+	endif
+	if bIncludeFastTravel
+		Button.set(4)
+	else
+		Button.set(3)
+	endif
+	Button.set(9)
+EndFunction

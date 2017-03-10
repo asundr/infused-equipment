@@ -8,8 +8,8 @@ Keyword	property	WeapTypeBow						Auto
 Spell	property	DLC2dunKolbjornArmorParalyze	Auto
 Sound	property	MAGParalysisEnchantment			Auto
 
-bool	Property	bBalanced		=	True	Auto	Hidden
-float	Property	EffectChance	=	0.05	Auto	Hidden
+bool	Property	bBalanced		Auto	Hidden
+float	Property	EffectChance	Auto	Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
 float	Property	DEFEffectChance	=	0.05	Autoreadonly
@@ -27,8 +27,8 @@ Event OnEffectStart (Actor akTarget, Actor akCaster)
 EndEvent
 
 Function RestoreDefaultFields()
-	bBalanced = True
-	EffectChance = DEFEffectChance
+	bBalanced		= True
+	EffectChance	= DEFEffectChance
 EndFunction
 
 ;===============================================================================================================================

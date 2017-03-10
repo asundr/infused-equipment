@@ -4,7 +4,7 @@ Scriptname INEQ_EventListenerBase extends ActiveMagicEffect Hidden
 ;===========================================  Properties  ===========================================================================>
 ReferenceAlias	Property	DistanceTravelledAlias	Auto	Hidden
 ReferenceAlias	Property	MagickaSiphonAlias		Auto	Hidden
-;ReferenceAlias	Property	SharedChargesAlias		Auto	Hidden
+ReferenceAlias	Property	SharedChargesAlias		Auto	Hidden
 
 bool	Property	bRegisteredDT	=	False	Auto	Hidden
 bool	Property	bRegisteredMS	=	False	Auto	Hidden
@@ -13,8 +13,9 @@ int		Property	LocalCharge		=	0		Auto	Hidden
 int		Property	MaxLocalCharge	=	1		Auto	Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
-String	Property	ModName			=	"InfusedEquipment.esp"	Autoreadonly
+String	Property	PluginName		=	"InfusedEquipment.esp"	Autoreadonly
 int		Property	RechargeQuestID	=	0x001305b7				Autoreadonly
+;===========================================  Variables  ============================================================================>
 
 ;===============================================================================================================================
 ;====================================	    Maintenance			================================================
@@ -35,12 +36,17 @@ EndEvent
 
 Function EffectStart(Actor akTarget, Actor akCaster)
 	if !DistanceTravelledAlias
-		DistanceTravelledAlias = (Game.GetFormFromFile(RechargeQuestID, ModName) as Quest).GetAlias(0) as ReferenceAlias
+		DistanceTravelledAlias = (Game.GetFormFromFile(RechargeQuestID, PluginName) as Quest).GetAlias(0) as ReferenceAlias
+	endif
+	
+	if !SharedChargesAlias
+		SharedChargesAlias = (Game.GetFormFromFile(RechargeQuestID, PluginName) as Quest).GetAlias(1) as ReferenceAlias
 	endif
 	
 	if !MagickaSiphonAlias
-		MagickaSiphonAlias = (Game.GetFormFromFile(RechargeQuestID, ModName) as Quest).GetAlias(2) as ReferenceAlias
+		MagickaSiphonAlias = (Game.GetFormFromFile(RechargeQuestID, PluginName) as Quest).GetAlias(2) as ReferenceAlias
 	endif
+	RestoreDefaultFields()
 EndFunction
 
 Function EffectFinish(Actor akTarget, Actor akCaster)
@@ -106,3 +112,19 @@ bool Function isRegisteredMagickaSiphon()
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
+;INEQ_SharedCharges
+int Function GetSharedCharge()
+	return (SharedChargesAlias as INEQ_SharedCharges).getCharge()
+EndFunction
+
+Function AddSharedCharge(int charge = 1)
+	(SharedChargesAlias as INEQ_SharedCharges).addCharge(charge)
+EndFunction
+
+bool Function RequestSharedCharge(int charge)
+	return (SharedChargesAlias as INEQ_SharedCharges).requestChargeUpTo(charge, True)
+EndFunction
+
+int Function RequestSharedChargeUpTo(int charge)
+	return (SharedChargesAlias as INEQ_SharedCharges).requestChargeUpTo(charge)
+EndFunction

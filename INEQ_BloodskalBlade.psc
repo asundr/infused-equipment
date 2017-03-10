@@ -8,22 +8,20 @@ Message Property	ChargeOptionsMenu	Auto
 Spell	Property	DLC2BloodskalBladeSpellHoriz	Auto
 Spell	Property	DLC2BloodskalBladeSpellVert		Auto
 
-ReferenceAlias	Property	SharedChargesAlias		Auto
+bool	Property	bBalanced			Auto	Hidden
+bool	Property	bUseCharges			Auto	Hidden
 
-bool	Property	bBalanced		=	True	Auto	Hidden
-bool	Property	bUseCharges		=	True	Auto	Hidden
-
-int		Property	ChargeMode		=	0		Auto	Hidden	; 0=shared charges, 1=prioritize local, 2=only use local charges
-Int		Property	ChargeCost		=	2		Auto	Hidden
-float	Property	ChargeDistance	=	100.0	Auto	Hidden	; 1000.0, should be high relative to ChargeMagickaSiphon
-float	Property	ChargeMagickaMP =	50.0	Auto	Hidden
-int		Property	ChargeMagickaPR =	50		Auto	Hidden
+int		Property	ChargeMode			Auto	Hidden	; 0=shared charges, 1=prioritize local, 2=only use local charges
+Int		Property	ChargeCost			Auto	Hidden
+float	Property	ChargeDistance		Auto	Hidden	; 1000.0, should be high relative to ChargeMagickaSiphon
+float	Property	ChargeMagickaMP		Auto	Hidden
+int		Property	ChargeMagickaPR		Auto	Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
 int		Property	DEFChargeMode		=	0		Autoreadonly
 int		Property	DEFMaxLocalCharge	=	4		Autoreadonly
 int		Property	DEFChargeCost		=	2		Autoreadonly
-float	Property	DEFChargeDistance	=	2000.0	Autoreadonly
+float	Property	DEFChargeDistance	=	100.0	Autoreadonly
 float	Property	DEFChargeMagickaMP	=	1000.0	Autoreadonly
 int		Property	DEFChargeMagickaPR	=	50		Autoreadonly
 
@@ -35,7 +33,6 @@ String	Property PWForward2H	= 	"AttackPowerForward_FXstart"	Autoreadonly
 String	Property PWBackward2H	= 	"AttackPowerBackward_FXstart"	Autoreadonly
 
 ;===========================================  Variables  ============================================================================>
-INEQ_SharedCharges SharedCharges
 
 ;===============================================================================================================================
 ;====================================	    Maintenance			================================================
@@ -43,10 +40,8 @@ INEQ_SharedCharges SharedCharges
 
 Event OnEffectStart(Actor akTarget, Actor akCaster)
 	parent.EffectStart(akTarget, akCaster)
-	SharedCharges = SharedChargesAlias as INEQ_SharedCharges
 	RegisterAbilityToAlias()
-	;RestoreDefaultFields()
-	MaxLocalCharge	=	DEFMaxLocalCharge
+	RegisterForRecharge()
 EndEvent
 
 Event OnPlayerLoadGame()
@@ -62,7 +57,6 @@ EndFunction
 Function RestoreDefaultFields()
 	bUseCharges		=	True
 	bBalanced		=	True
-	LocalCharge		=	0
 	MaxLocalCharge	=	DEFMaxLocalCharge
 	ChargeCost		=	DEFChargeCost
 	ChargeDistance	=	DEFChargeDistance
@@ -195,16 +189,16 @@ EndState
 ; Returns whether the necessary charges were obtained
 bool function hasCharge()
 	if ChargeMode == 0		; shared priority
-		int shared = SharedCharges.getCharge()
+		int shared = GetSharedCharge()
 		if shared >= ChargeCost						; Attempts to use charges from shared first if available
-			return SharedCharges.requestCharge(ChargeCost)
-		elseif shared + LocalCharge >= ChargeCost
-			SharedCharges.requestCharge(shared)		; else uses remaining shared charges
+			return RequestSharedCharge(ChargeCost)
+		elseif shared + LocalCharge >= ChargeCost	
+			RequestSharedCharge(shared)				; else uses remaining shared charges
 			removeLocalCharge(ChargeCost - shared)	; and use local charges to complete chage cost
 			return true
 		endif
 	elseif ChargeMode == 1	; local priority
-		return removeLocalCharge(ChargeCost) || SharedCharges.requestCharge(ChargeCost)
+		return removeLocalCharge(ChargeCost) || RequestSharedCharge(ChargeCost)
 	elseif ChargeMode == 2	; local only
 		return removeLocalCharge(ChargeCost) 
 	endif

@@ -1,42 +1,40 @@
-Scriptname INEQ_SharedCharges extends ReferenceAlias 
+Scriptname INEQ_SharedCharges extends INEQ_RechargeBase 
 {Holds and transfers charges used by various abilities}
 
 ;===========================================  Properties  ===========================================================================>
 float	Property	ChargeDistance	=	110.0	Auto	Hidden
-float	Property	ChargeMagicka	=	150.0	Auto	Hidden
-int		Property	PriorityMagicka	=	10		Auto	Hidden
+float	Property	ChargeMagickaMP	=	150.0	Auto	Hidden
+int		Property	ChargeMagickaPR	=	10		Auto	Hidden
+int		Property	MaxCharges		=	5		Auto	Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
-float	Property	DEFChargeDistance	=	2000.0	Autoreadonly	Hidden
-float	Property	DEFChargeMagicka	=	150.0	Autoreadonly	Hidden
-int		Property	DEFPriorityMagicka	=	10		Autoreadonly	Hidden
+float	Property	DEFChargeDistance	=	2000.0	Autoreadonly
+float	Property	DEFChargeMagickaMP	=	150.0	Autoreadonly
+int		Property	DEFChargeMagickaPR	=	10		Autoreadonly
+int		Property	DEFMaxCharges		=	5		Autoreadonly
 
 ;===========================================  Variables  ============================================================================>
-Actor SelfRef
-INEQ_SharedChargesListener EventListener
+bool bBalanced = True
+int numCharges	= 5
 
-int numCharges	= 5	;use GV for persistence?
-int maxCharges	= 5
+INEQ_SharedChargesListener EventListener
 
 ;===============================================================================================================================
 ;====================================	    Maintenance			================================================
 ;================================================================================================
 
-Event OnInit()
-	SelfRef = GetReference() as Actor
-	RegisterForTrackedStatsEvent()
-EndEvent
-
 ; Registers for events on load if they should be active
 Event OnPlayerLoadGame()
-	RegisterForDistanceTravelledEvent()
-	RegisterForMagickaSiphonEvent()
+	parent.PlayerLoadGame()
+	RegisterForRecharge()
 EndEvent
 
 Function RestoreDefaultFields()
-	ChargeDistance = DEFChargeDistance
-	ChargeMagicka = DEFChargeMagicka
-	PriorityMagicka = DEFPriorityMagicka
+	bBalanced		= True
+	ChargeDistance	= DEFChargeDistance
+	ChargeMagickaMP	= DEFChargeMagickaMP
+	ChargeMagickaPR	= DEFChargeMagickaPR
+	MaxCharges		= DEFMaxCharges
 Endfunction
 	
 ;===============================================================================================================================
@@ -55,8 +53,7 @@ Function addCharge(int charge = 1)
 		numCharges += charge
 		if numCharges < maxCharges
 			Debug.Notification("Shared charges: " +numCharges)
-			RegisterForDistanceTravelledEvent()
-			RegisterForMagickaSiphonEvent()
+			RegisterForRecharge()
 			return
 		else
 			numCharges = maxCharges
@@ -78,15 +75,13 @@ int function requestChargeUpTo(int iRequest, bool bExact = False)
 	if iRequest > 0
 		if numCharges >= iRequest
 			numCharges -= iRequest
-			RegisterForDistanceTravelledEvent()
-			RegisterForMagickaSiphonEvent()
+			RegisterForRecharge()
 			Debug.Notification("Shared charges: " +numCharges)
 			return iRequest
 		elseif !bExact
 			iRequest = numCharges
 			numCharges = 0
-			RegisterForDistanceTravelledEvent()
-			RegisterForMagickaSiphonEvent()
+			RegisterForRecharge()
 			Debug.Notification("Shared charges: " +numCharges)
 			return iRequest
 		else
@@ -98,11 +93,17 @@ int function requestChargeUpTo(int iRequest, bool bExact = False)
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
+; Register for any recharge sources
+Function RegisterForRecharge()
+	RegisterForDistanceTravelledEvent()
+	RegisterForMagickaSiphonEvent()
+EndFunction
+;___________________________________________________________________________________________________________________________
+
 ; Links to a class, that's capable of listening to EventListener behavior
 Function registerListener(INEQ_SharedChargesListener akListener)
 	EventListener = akListener
-	RegisterForDistanceTravelledEvent()
-	RegisterForMagickaSiphonEvent()
+	RegisterForRecharge()
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
@@ -122,7 +123,7 @@ EndFunction
 ; Registers for MagickaSiphonEvent if not at maximum charges and not currently registered
 Function RegisterForMagickaSiphonEvent()
 	if numCharges < maxCharges && EventListener ;&& !EventListener.isRegisteredMagickaSiphon()
-		EventListener.RegisterForMagickaSiphonEvent(ChargeMagicka, PriorityMagicka)
+		EventListener.RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR)
 	endif
 EndFunction
 
@@ -130,12 +131,48 @@ EndFunction
 function OnMagickaSiphonEvent()
 	addCharge()
 EndFunction
-;___________________________________________________________________________________________________________________________
 
-;Doesn't seem to register... :(
-Event OnTrackedStatsEvent(string asStat, int aiStatValue)
-	if asStat == "Bunnies Slaughtered"
-		Debug.MessageBox("You monster")
-		addCharge()
+;===============================================================================================================================
+;====================================		    Menus			================================================
+;================================================================================================
+
+Function ChargeMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu, GlobalVariable MenuActive)
+	bool abMenu = True
+	int aiButton
+	while abMenu && MenuActive.Value
+		SetButtonMain(Button)
+		aiButton = MainMenu.Show()
+		if aiButton == 0
+			abMenu = False
+		elseif aiButton == 9		; Cancel menu
+			MenuActive.SetValue(0)
+		elseif aiButton == 1		; Turn on Balanced
+			RestoreDefaultFields()
+		elseif aiButton == 2		; Turn off Balanced
+			bBalanced = False
+		elseif aiButton == 3		; Charge Storage
+			MaxCharges = ListenerMenu.ChargeStorage(MaxCharges, DEFMaxCharges)
+			RegisterForRecharge()
+		elseif aiButton == 4		; Distance Cost
+			ChargeDistance = ListenerMenu.DistanceTravelledCost(ChargeDistance, DEFChargeDistance)
+		elseif aiButton == 5		; Magicka Cost
+			ChargeMagickaMP = ListenerMenu.MagickaSiphonCost(ChargeMagickaMP, DEFChargeMagickaMP)
+		elseif aiButton == 8		; Priority
+			ChargeMagickaPR = ListenerMenu.MagickaSiphonPriority(ChargeMagickaPR, DEFChargeMagickaPR)
+		endif
+	endwhile
+EndFunction
+
+Function SetButtonMain(INEQ_MenuButtonConditional Button)
+	Button.clear()
+	if bBalanced
+		Button.set(2)
+	else
+		Button.set(1)
+		Button.set(3)
+		Button.set(4)
+		Button.set(5)
 	endif
-EndEvent
+	Button.set(8)
+	Button.set(9)
+EndFunction

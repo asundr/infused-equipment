@@ -1,4 +1,4 @@
-Scriptname INEQ_MagickaSiphon extends ReferenceAlias 
+Scriptname INEQ_MagickaSiphon extends INEQ_RechargeBase 
 {Diverts a portion of MP regen to registered abilities through events}
 
 ; Abilities should have a MP requirement and a priority. Abiliteis with the same priority are charged simultaneously.
@@ -8,23 +8,22 @@ Scriptname INEQ_MagickaSiphon extends ReferenceAlias
 ;===========================================  Properties  ===========================================================================>
 GlobalVariable	Property	TimeScale	Auto
 
-float Property	DrainPercentage	=	0.25	Auto	Hidden
+float Property	DrainPercentage	=	1.0	Auto	Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
-
-String	Property	CastStop	=	"CastStop"	Autoreadonly
-
 float	Property	SecondsInDay	=	86400.0	Autoreadonly
 
 float	Property	CombatCheck		=	10.0	Autoreadonly		; checks at most CombatCheck seconds after last update
 float	Property	MPResetDelay	=	1.0		Autoreadonly		; Limits rapid checking when mp is close to full
 
-bool	Property	bDebugTrace		=	True	Autoreadonly
+bool	Property	bDebugTrace		=	False	Autoreadonly
 bool	Property	bDebugMessage	=	False	Autoreadonly
 
-;===========================================  Variables  ============================================================================>
-Actor SelfRef
+float	Property	DEFDrainPercentage	=	1.0	Autoreadonly
 
+String	Property	CastStop	=	"CastStop"	Autoreadonly
+
+;===========================================  Variables  ============================================================================>
 float previousTime
 float TotalMagicka
 
@@ -57,7 +56,7 @@ int numUnregistered = 0
 ;================================================================================================
 
 Event OnInit()
-	SelfRef = GetReference() as Actor
+	parent.Init()
 	registeredAb = new INEQ_EventListenerBase[16]
 	registeredMP = new float[16]
 	registeredPR = new int[16]
@@ -68,6 +67,7 @@ Event OnInit()
 EndEvent
 
 Event OnPlayerLoadGame()
+	parent.PlayerLoadGame()
 	; Restores player's MagickaRateMult if the Active state was left in an unexpected way
 	if DrainMult
 		String currentState = GetState()
@@ -75,7 +75,13 @@ Event OnPlayerLoadGame()
 			RestoreMagickaDrain()
 		endif
 	endif
-EndEvent		
+EndEvent
+
+Function RestoreDefaultFields()
+	DrainPercentage = DEFDrainPercentage
+	bSiphonBelowMax = False
+	RestoreMagickaDrain()
+EndFunction
 
 ;===============================================================================================================================
 ;====================================		Listening Events		================================================
@@ -752,3 +758,43 @@ EndFunction
 function UpdateMagickaDrain()
 	;Debug.Trace(self+ ": UpdateMagickaDrain() called in state \"" +GetState()+"\"")
 endFunction
+
+;===============================================================================================================================
+;====================================		    Menus			================================================
+;================================================================================================
+
+Function ChargeMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu, GlobalVariable MenuActive)
+	bool abMenu = True
+	int aiButton
+	while abMenu && MenuActive.Value
+		SetButtonMain(Button)
+		aiButton = MainMenu.Show()
+		if aiButton == 0
+			abMenu = False
+		elseif aiButton == 9		; Cancel menu
+			MenuActive.SetValue(0)
+		elseif aiButton == 1		; Siphon Below Max MP -> On
+			bSiphonBelowMax = True
+		elseif aiButton == 2		; Siphon Below Max MP -> Off
+			RestoreDefaultFields()
+		elseif aiButton == 3		; Set Siphon Percentage
+			DrainPercentage = ListenerMenu.SetPercentage(DrainPercentage, DEFDrainPercentage)
+		endif
+	endwhile
+	if GetState() != "RegisterBusy"
+		RegisterForSingleUpdate(0)
+	else
+		Debug.Notification("Menu changed in RegisterBusy")
+	endif
+EndFunction
+
+Function SetButtonMain(INEQ_MenuButtonConditional Button)
+	Button.clear()
+	if bSiphonBelowMax
+		Button.set(2)
+		Button.set(3)
+	else
+		Button.set(1)
+	endif
+	Button.set(9)
+EndFunction
