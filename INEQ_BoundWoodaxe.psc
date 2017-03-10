@@ -2,20 +2,23 @@ Scriptname INEQ_BoundWoodaxe extends INEQ_AbilityBase
 {Adds hidden axe to inventory and woodcutting formlist}
 
 ;===========================================  Properties  ===========================================================================>
-Weapon property INEQ_Hands_BoundWoodaxe_zAxe Auto
+Weapon		Property	INEQ_Hands_BoundWoodaxe_zAxe	Auto
+FormList	Property	woodChoppingAxes				Auto
 
-FormList Property woodChoppingAxes Auto
+;==========================================  Autoreadonly  ==========================================================================>
+
 
 ;===========================================  Variables  ============================================================================>
-ObjectReference EquipRef
+
 
 ;===============================================================================================================================
-;====================================		    Start/Finish			================================================
+;====================================	    Maintenance			================================================
 ;================================================================================================
 
 Event OnEffectFinish (Actor akTarget, Actor akCaster)
 	woodChoppingAxes.RemoveAddedForm(INEQ_Hands_BoundWoodaxe_zAxe)
 	SelfRef.RemoveItem(INEQ_Hands_BoundWoodaxe_zAxe, SelfRef.GetItemCount(INEQ_Hands_BoundWoodaxe_zAxe), true)
+	parent.EffectFinish(akTarget, akCaster)
 EndEvent
 
 ;===============================================================================================================================

@@ -28,7 +28,7 @@ String  Property	WeaponDrawn			=	"WeaponDraw"  	Autoreadonly		; Draw weapon
 bool bRecharged = False
 
 ;===============================================================================================================================
-;====================================	    Start/Finish		================================================
+;====================================	    Maintenance			================================================
 ;================================================================================================
 
 Event OnEffectStart(Actor akTarget, Actor akCaster)
@@ -37,18 +37,18 @@ Event OnEffectStart(Actor akTarget, Actor akCaster)
 	RegisterAbilityToAlias()
 EndEvent
 
-Event OnEffectFinish (Actor akTarget, Actor akCaster)
-	parent.EffectFinish(akTarget, akCaster)
-	UnregisterForUpdate()
-	UnregisterForAnimationEvent(selfRef, WeaponDrawn)
-	UnregisterForDistanceTravelledEvent()
-	UnregisterAbilityToAlias()
-EndEvent
-
 Event OnPlayerLoadGame()
 	parent.PlayerLoadGame()
 	RegisterForDistanceTravelledEvent(ChargeDistance)
 EndEvent
+
+Function RestoreDefaultFields()
+	bBalanced	= True
+	bUseCharges	= True
+	bUseTimer	= False
+	bRecharged	= False
+	ChargeDistance = DEFChargeDistance
+EndFunction
 
 ;===============================================================================================================================
 ;====================================			States			================================================
@@ -158,20 +158,18 @@ EndFunction
 ;====================================			Menus			================================================
 ;================================================================================================
 
-Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu)
+Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu, GlobalVariable MenuActive)
 	bool abMenu = True
 	int aiButton
-	while abMenu
+	while abMenu && MenuActive.Value
 		setButtonMain(Button)
 		aiButton = OptionsMenu.Show()
 		if aiButton == 0
-			return
+			abMenu = False
+		elseif aiButton == 9	; Cancel Menu
+			MenuActive.SetValue(0)
 		elseif aiButton == 1	; Turn on Balanced (Magicka Based)
-			bBalanced = True
-			bUseCharges = True
-			bUseTimer = False
-			bRecharged = False
-			ChargeDistance = DEFChargeDistance
+			RestoreDefaultFields()
 		elseif aiButton == 2	; Turn off Balanced (Cooldown Based)
 			bBalanced = False
 		elseif aiButton == 3	; Turn on charges
@@ -215,4 +213,5 @@ Function setButtonMain(INEQ_MenuButtonConditional Button)
 			Button.set(3)
 		endif
 	endif
+	Button.set(9)
 EndFunction

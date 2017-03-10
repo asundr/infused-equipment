@@ -1,16 +1,23 @@
 Scriptname INEQ_MehrunesRazor extends ActiveMagicEffect  
+{Probabilistically kills target if the target is not immune}
 
-Faction Property pDA07MehrunesRazorImmuneFaction auto
+;===========================================  Properties  ===========================================================================>
+Faction	Property	pDA07MehrunesRazorImmuneFaction	Auto
 
+;==========================================  Autoreadonly  ==========================================================================>
+
+;===========================================  Variables  ============================================================================>
+
+;===============================================================================================================================
+;====================================			Functions			================================================
+;================================================================================================
+
+; Apply this effect if the target is not immune
 Event OnEffectStart(Actor akTarget, Actor akCaster)
-
-	;Apply this effect if the target is not in the excluded faction
 	If akTarget.IsInFaction(pDA07MehrunesRazorImmuneFaction) == 0
-; 		Debug.trace(self + " hitting " + akTarget + " with Mehrunes' Razor")
 		If (Utility.RandomInt() <= 1)
- 			debug.Notification("Mehrunes Razor eliminated a foe")
+ 			Debug.Notification("Mehrunes Razor eliminated a foe")
 			akTarget.Kill()
 		EndIf
 	EndIf
-
 EndEvent

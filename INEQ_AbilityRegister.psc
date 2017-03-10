@@ -1,7 +1,7 @@
-Scriptname INEQ_AbilityRegister extends ReferenceAlias  
+Scriptname INEQ_AbilityRegister extends ReferenceAlias 
+{Allows access to the abilities and mod options via menus}
 
-Quest	Property	INEQ__AbilitiesToPlayer	Auto
-
+;===========================================  Properties  ===========================================================================>
 ReferenceAlias	Property	Alias_Shield001	Auto
 ReferenceAlias	Property 	Alias_Feet001	Auto
 ReferenceAlias	Property 	Alias_Head001  	Auto
@@ -10,8 +10,6 @@ ReferenceAlias	Property 	Alias_Hands001 	Auto
 ReferenceAlias	Property	Alias_Bow001	Auto
 ReferenceAlias  Property	Alias_Dagger001	Auto
 ReferenceAlias  Property	Alias_Sword001	Auto
-
-INEQ_EquipmentScript[] Equipment
 
 Keyword 	Property	ArmorBoots		Auto
 Keyword 	Property	ArmorCuirass	Auto
@@ -32,8 +30,6 @@ Keyword 	Property	WeapTypeSword		Auto
 Keyword 	Property	WeapTypeWarAxe		Auto
 Keyword 	Property	WeapTypeWarhammer	Auto
 
-GlobalVariable	Property	CheatMode	Auto
-
 Message  	Property  	SelectAction  	Auto
 Message		Property	EquipSlotSelect	Auto
 Message		Property	AbilitySelect	Auto
@@ -41,15 +37,27 @@ Message		Property	AbilityOptions	Auto
 Message		Property	OtherOptions	Auto
 Message		Property	FullResetWarn	Auto
 
-Quest	Property	MainQuest	Auto
+GlobalVariable	Property	CheatMode	Auto
+GlobalVariable	Property	MenuActive	Auto
 
+Quest	Property	MainQuest				Auto
+Quest	Property	INEQ__AbilitiesToPlayer	Auto
+
+;==========================================  Autoreadonly  ==========================================================================>
+float	Property	InfuseTimout	=	5.0	Autoreadonly
+
+;===========================================  Variables  ============================================================================>
 Actor SelfRef
-
+bool isBusy
 
 INEQ_MenuButtonConditional	Button
 INEQ_ListenerMenu			ListenerMenu
 
-bool isBusy
+INEQ_EquipmentScript[]		Equipment
+
+;===============================================================================================================================
+;====================================	    Maintenance			================================================
+;================================================================================================
 
 Event OnInit()
 	SelfRef = self.GetReference() as Actor
@@ -65,9 +73,7 @@ Event OnInit()
 	Equipment[6] = Alias_Hands001 	as INEQ_EquipmentScript
 	Equipment[7] = Alias_Feet001 	as INEQ_EquipmentScript
 EndEvent
-	
-	
-	
+
 Event OnPlayerLoadGame()
 	maintenance()
 EndEvent
@@ -81,13 +87,18 @@ Function maintenance()
 	endwhile
 EndFunction
 
+;===============================================================================================================================
+;====================================			States			================================================
+;================================================================================================
 
-Function MainMenu(bool abMenu = True, int aiButton = 0)
-	While abMenu
+Function MainMenu()
+	int aiButton
+	MenuActive.setValue(1)
+	While MenuActive.Value
 		aiButton = SelectAction.Show()
 		If aiButton == 0 			
 			StartRegister()
-			abMenu = False
+			MenuActive.setValue(0)
 		ElseIF aiButton == 1
 			StartUnlocking()
 		ElseIf aiButton == 2 
@@ -97,7 +108,7 @@ Function MainMenu(bool abMenu = True, int aiButton = 0)
 		ElseIf aiButton == 4
 			StartOtherOptions()
 		elseif aiButton == 5
-			abMenu = False
+			MenuActive.setValue(0)
 		EndIf
 	EndWhile
 EndFunction
@@ -108,7 +119,7 @@ State Register
 
 	Event OnBeginState()
 		Debug.Notification("Drop apparel or a weapon to infuse it")		
-		RegisterForSingleUpdate(5)
+		RegisterForSingleUpdate(InfuseTimout)
 	EndEvent
 	
 	Event OnUpdate()
@@ -195,15 +206,18 @@ EndState
 State SelectAbilities
 
 	Event OnBeginState()
+		MenuActive.SetValue(1)
 		EquipmentSlotMenu()
 		GoToState("")
 	EndEvent
 	;___________________________________________________________________________________________________________________________
 
 	; Menu for (de)acitvating available abilities. Shows 4  options at a time, pressing next (button 9) recursively calls itself at a later index
-	Function AbilitySelectMenu(INEQ_AbilityAliasProperties[] AbilityArray, int startIndex = 0, int index = 0,  bool abMenu = True)
+	Function AbilitySelectMenu(INEQ_AbilityAliasProperties[] AbilityArray, int startIndex = 0, int index = 0);,  bool abMenu = True)
 
 		; Iterates ability list to find 4 unlocked abilities from a given index
+		bool abMenu = True
+		
 		int max = AbilityArray.length
 		INEQ_AbilityAliasProperties[] currAbilities = new INEQ_AbilityAliasProperties[4]
 		String messageText = ""
@@ -232,7 +246,7 @@ State SelectAbilities
 		endif
 		
 		int aiButton
-		While abMenu
+		While abMenu && MenuActive.Value
 			Debug.MessageBox(messageText)
 			setButton(currAbilities, index  < max)
 			aiButton = AbilitySelect.Show()
@@ -281,14 +295,17 @@ EndState
 State AbilityOptions
 
 	Event OnBeginState()
+		MenuActive.SetValue(1)
 		EquipmentSlotMenu()
 		GoToState("")
 	EndEvent
 	;___________________________________________________________________________________________________________________________
 
-	Function AbilitySelectMenu(INEQ_AbilityAliasProperties[] AbilityArray, int startIndex = 0, int index = 0,  bool abMenu = True)
+	Function AbilitySelectMenu(INEQ_AbilityAliasProperties[] AbilityArray, int startIndex = 0, int index = 0);,  bool abMenu = True)
 		
 		;Iterate ability list to find 8 unlocked abilities from a given index
+		bool abMenu = True
+		
 		int max = AbilityArray.length
 		INEQ_AbilityAliasProperties[] currAbilities = new INEQ_AbilityAliasProperties[8]
 		String messageText = ""
@@ -317,7 +334,7 @@ State AbilityOptions
 		endif
 		
 		int aiButton
-		while abMenu
+		while abMenu && MenuActive.Value
 			Debug.MessageBox(messageText)
 			setButton(currAbilities, index < max)
 			aiButton = AbilityOptions.Show()
@@ -326,7 +343,7 @@ State AbilityOptions
 			elseif aiButton == 9
 				AbilitySelectMenu(AbilityArray, index, index)
 			else
-				currAbilities[aiButton - 1].AbilityMenu(Button, ListenerMenu)
+				currAbilities[aiButton - 1].AbilityMenu(Button, ListenerMenu, MenuActive)
 			endif
 		endwhile
 		
@@ -357,9 +374,10 @@ State OtherOptions
 
 	Event OnBeginState()
 		bool abMenu = True
+		MenuActive.SetValue(1)
 		int aiButton = 0
 
-		While abMenu
+		While abMenu && MenuActive.Value
 			If aiButton != -1 			; Wait for input (this can prevent problems if recycling the aiButton argument in submenus)
 				aiButton = OtherOptions.Show() ; Main Menu
 				if aiButton == 0
@@ -396,6 +414,7 @@ State OtherOptions
 				EndIf
 			EndIf
 		EndWhile
+		MenuActive.setValue(1)
 		GoToState("")
 	EndEvent
 
@@ -432,16 +451,13 @@ endFunction
 ; Presents the user with a list of item slots and calls the menu function on the slot selected
 Function EquipmentSlotMenu()
 	bool abMenu = True
-	int aiButton = 0
-	While abMenu
+	int aiButton
+	While abMenu && MenuActive.Value
 		aiButton = EquipSlotSelect.Show() ; Main Menu
-		;abMenu = False
-		if aiButton == 0
-			;back return
+		if aiButton == 0		;back return
 			abMenu = False
-		elseif aiButton == 9
-			;cancel
-			abMenu = False
+		elseif aiButton == 9	;cancel
+			MenuActive.SetValue(0)
 		else
 			AbilitySelectMenu(Equipment[aiButton - 1].AbilityAliasArray)
 		EndIf
@@ -450,7 +466,7 @@ EndFunction
 
 ;___________________________________________________________________________________________________________________________
 ;							Empty placehoder functions for overwriting
-Function AbilitySelectMenu(INEQ_AbilityAliasProperties[] AbilityArray, int startIndex = 0, int index = 0,  bool abMenu = True)
+Function AbilitySelectMenu(INEQ_AbilityAliasProperties[] AbilityArray, int startIndex = 0, int index = 0);,  bool abMenu = True)
 	Debug.Trace(self+ " accessed AbilitySelectMenu() in the Empty State")
 EndFunction
 

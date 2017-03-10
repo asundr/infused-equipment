@@ -5,20 +5,16 @@ Scriptname INEQ_SharedChargesListener extends INEQ_EventListenerBase
 ReferenceAlias	Property	SharedChargesAlias		Auto
 
 ;===========================================  Variables  ============================================================================>
-INEQ_SharedCharges 		SharedCharges
+INEQ_SharedCharges 	SharedCharges
 
 ;===============================================================================================================================
-;====================================	    Start/Finish		================================================
+;====================================	    Maintenance			================================================
 ;================================================================================================
 
 Event OnEffectStart(Actor akTarget, Actor akCaster)
+	parent.EffectStart(akTarget, akCaster)
 	SharedCharges = SharedChargesAlias as INEQ_SharedCharges
 	SharedCharges.registerListener(self)
-EndEvent
-
-Event OnEffectFinish(Actor akTarget, Actor akCaster)
-	UnregisterForMagickaSiphonEvent()
-	UnregisterForDistanceTravelledEvent()
 EndEvent
 
 ;===============================================================================================================================

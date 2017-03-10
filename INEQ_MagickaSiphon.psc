@@ -1,19 +1,23 @@
 Scriptname INEQ_MagickaSiphon extends ReferenceAlias 
 {Diverts a portion of MP regen to registered abilities through events}
 
+; Abilities should have a MP requirement and a priority. Abiliteis with the same priority are charged simultaneously.
+; This means that passive wards with high priority will be charged first, ignoring all else while other abilities that may have other charging
+; mechanics like the auriel's shield or the bloodskal blade can use it when somehting like the ward isn't depending on it.
+
 ;===========================================  Properties  ===========================================================================>
 GlobalVariable	Property	TimeScale	Auto
 
-float Property	DrainPercentage	=	0.25	Auto	Hidden	; 0.75	;should change to property
+float Property	DrainPercentage	=	0.25	Auto	Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
 
-String	Property	CastStop	=	"CastStop"	Autoreadonly	Hidden
+String	Property	CastStop	=	"CastStop"	Autoreadonly
 
-float	Property	SecondsInDay	=	86400.0	Autoreadonly	Hidden
+float	Property	SecondsInDay	=	86400.0	Autoreadonly
 
-float	Property	CombatCheck		=	10.0	Autoreadonly	Hidden	; checks at most CombatCheck seconds after last update
-float	Property	MPResetDelay	=	1.0		Autoreadonly	Hidden	; Limits rapid checking when mp is close to full
+float	Property	CombatCheck		=	10.0	Autoreadonly		; checks at most CombatCheck seconds after last update
+float	Property	MPResetDelay	=	1.0		Autoreadonly		; Limits rapid checking when mp is close to full
 
 bool	Property	bDebugTrace		=	True	Autoreadonly
 bool	Property	bDebugMessage	=	False	Autoreadonly
@@ -31,7 +35,7 @@ float DrainMult
 float DrainMag
 
 bool bEnableOffState = True
-bool bSiphonBelowMax = True
+bool bSiphonBelowMax = False
 
 INEQ_EventListenerBase[] registeredAb
 float[] registeredMP
@@ -48,12 +52,8 @@ int numBuffered = 0
 int numPriority = 0
 int numUnregistered = 0
 
-; Abilities should have a MP requirement and a priority. Abiliteis with the same priority are charged simultaneously.
-; This means that passive wards with high priority will be charged first, ignoring all else while other abilities that may have other charging
-; mechanics like the auriel's shield or the bloodskal blade can use it when somehting like the ward isn't depending on it.
-
 ;===============================================================================================================================
-;====================================	    Start/Finish		================================================
+;====================================	    Maintenance			================================================
 ;================================================================================================
 
 Event OnInit()

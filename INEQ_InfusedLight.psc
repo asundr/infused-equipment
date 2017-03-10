@@ -2,23 +2,31 @@ Scriptname INEQ_InfusedLight extends INEQ_AbilityBase1H
 {Attached to the ability's magic effect}
 
 ;===========================================  Properties  ===========================================================================>
-Spell property LightSpell auto
+Spell	Property	LightSpell	Auto
 
-String  Property	WeaponDraw		=	"WeaponDraw"  	Autoreadonly			; Draw weapon
-String	Property	WeaponSheathe	=	"WeaponSheathe"	Autoreadonly			; sheathe weapon
+float	Property	LightThreshold	=	25.0	Auto	Hidden
+
+;==========================================  Autoreadonly  ==========================================================================>
+float	Property	DEFLightThreshold	=	25.0	Autoreadonly
+
+String	Property	WeaponDraw		=	"WeaponDraw"  		Autoreadonly		; Draw weapon
+String	Property	WeaponSheathe	=	"WeaponSheathe"		Autoreadonly		; sheathe weapon
 
 ;===========================================  Variables  ============================================================================>
-ObjectReference EquipRef
+
 
 ;===============================================================================================================================
-;====================================		    Start			================================================
+;====================================	    Maintenance			================================================
 ;================================================================================================
 
 Event OnEffectFinish (Actor akTarget, Actor akCaster)
 	SelfRef.RemoveSpell(LightSpell)
-	UnregisterForAnimationEvent(selfRef, WeaponDraw)
-	UnregisterForAnimationEVent(SelfRef, WeaponSheathe)
+	parent.EffectFinish(akTarget, akCaster)
 EndEvent
+
+Function RestoreDefaultFields()
+	LightThreshold = DEFLightThreshold
+EndFunction
 
 ;===============================================================================================================================
 ;====================================			States			================================================
@@ -32,8 +40,10 @@ State Equipped
 	EndEvent
 
 	Event OnAnimationEvent(ObjectReference akSource, string EventName)
-		GoToState("Active")
-	endEVENT
+		if SelfRef.GetLightLevel() < LightThreshold
+			GoToState("Active")
+		endif
+	EndEvent
 
 	Event OnEndState()
 		UnregisterForAnimationEvent(selfRef, WeaponDraw)
@@ -51,7 +61,7 @@ State Active
 	
 	Event OnAnimationEvent(ObjectReference akSource, string EventName)
 		GoToState("Equipped")
-	endEVENT
+	EndEvent
 
 	Event OnEndState()
 		SelfRef.RemoveSpell(LightSpell)

@@ -1,16 +1,24 @@
 Scriptname INEQ_AbilityBase extends INEQ_EventListenerBase Hidden
+{Base object that disables/enables ability effects when un/equipping an infused item}
 
 Keyword			Property	KW_EnbaleAbility		Auto
-Actor			Property	SelfRef					Auto
 ReferenceAlias	Property	AbilityAliasProperties	Auto
-
+Actor			Property	SelfRef					Auto	Hidden
 ObjectReference	Property	EquipRef				Auto	Hidden
 
 ;===============================================================================================================================
 ;====================================	    Maintenance			================================================
 ;================================================================================================
 
+Function EffectStart(Actor akTarget, Actor akCaster)
+	parent.EffectStart(akTarget, akCaster)
+	SelfRef = akTarget
+EndFunction
 
+Function EffectFinish(Actor akTarget, Actor akCaster)
+	UnregisterAbilityToAlias()
+	parent.EffectFinish(akTarget, akCaster)
+EndFunction
 
 ;===============================================================================================================================
 ;====================================			States			================================================
@@ -74,7 +82,7 @@ EndFunction
 ;___________________________________________________________________________________________________________________________
 
 ; Menu palceholder - should be overriden by implementation of ability's menu
-Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu)
+Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu, GlobalVariable MenuActive)
 	Debug.Trace(self+ " attempted to access non-existent ability menu")
 EndFunction
 ;___________________________________________________________________________________________________________________________

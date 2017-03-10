@@ -15,18 +15,15 @@ float	Property	EffectChance	=	0.05	Auto	Hidden
 float	Property	DEFEffectChance	=	0.05	Autoreadonly
 
 ;===========================================  Variables  ============================================================================>
-ObjectReference EquipRef
+
 
 ;===============================================================================================================================
-;====================================	    Start/Finish		================================================
+;====================================	    Maintenance			================================================
 ;================================================================================================
 
 Event OnEffectStart (Actor akTarget, Actor akCaster)
+	parent.EffectStart(akTarget, akCaster)
 	RegisterAbilityToAlias()
-EndEvent
-
-Event OnEffectFinish (Actor akTarget, Actor akCaster)
-	UnregisterAbilityToAlias()
 EndEvent
 
 Function RestoreDefaultFields()
@@ -56,14 +53,16 @@ EndState
 ;====================================		    Menus			================================================
 ;================================================================================================
 
-Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu)
+Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu, GlobalVariable MenuActive)
 	bool abMenu = True
 	int aiButton
-	while abMenu
+	while abMenu && MenuActive.Value
 		SetButtonMain(Button)
 		aiButton = MainMenu.Show()
-		if aiButton == 0
-			return
+		if aiButton == 0			; Previous menu
+			abMenu = False
+		elseif aiButton == 9		; Exit menu
+			MenuActive.SetValue(0)
 		elseif aiButton == 1		; Turn on Balanced
 			RestoreDefaultFields()
 		elseif aiButton == 2		; Turn off Balanced
@@ -83,4 +82,5 @@ Function SetButtonMain(INEQ_MenuButtonConditional Button)
 		Button.set(1)
 		Button.set(3)
 	endif
+	Button.set(9)
 EndFunction

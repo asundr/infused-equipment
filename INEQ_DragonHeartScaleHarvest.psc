@@ -1,26 +1,36 @@
 Scriptname INEQ_DragonHeartScaleHarvest extends ActiveMagicEffect  
 
-miscobject Property MGRDragonHeartScales  Auto 
+;===========================================  Properties  ===========================================================================>
+Miscobject	Property	MGRDragonHeartScales	Auto
 
+;==========================================  Autoreadonly  ==========================================================================>
+
+
+;===========================================  Variables  ============================================================================>
 Actor Dragon
+
+;===============================================================================================================================
+;====================================	    Maintenance			================================================
+;================================================================================================
 
 Event OnEffectStart(Actor akTarget, Actor akCaster)
 	Dragon = akTarget
-	GoToState("Ready")
 EndEvent
 
+;===============================================================================================================================
+;====================================			States			================================================
+;================================================================================================
 
-State Ready
+Auto State Ready
 
 	Event OnActivate (ObjectReference ActionRef)
 		if Dragon.IsDead()
-			Dragon.AddItem(MGRDragonHeartScales,1)
+			Dragon.AddItem(MGRDragonHeartScales, 1)
 			GoToState("Finished")
 		endif
 	EndEvent
 
 EndState
-
 
 State Finished
 

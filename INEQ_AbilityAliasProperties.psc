@@ -1,34 +1,60 @@
 Scriptname INEQ_AbilityAliasProperties extends ReferenceAlias  
+{Object that handles unlocking and activating abilities}
 
-Actor Property PlayerRef Auto
-
-ReferenceAlias  Property  AbilityToPlayer  Auto
-
-; only fill one of these
+;===========================================  Properties  ===========================================================================>
 Armor[]		Property	LearningArmor	Auto
 Weapon[]	Property	LearningWeapon	Auto
 Spell[]		Property	LearningSpell	Auto
 WordOfPower[] Property 	LearningWord	Auto
 Enchantment[] Property	LearningEnch	Auto
 
-GlobalVariable Property CheatMode Auto
+Actor			Property	PlayerRef		Auto
+ReferenceAlias	Property	AbilityToPlayer	Auto
+GlobalVariable	Property	CheatMode		Auto
 
 String Property Name Auto
 
 bool  Property  IsUnlocked  =  False  Auto  Hidden
 bool  Property  IsActive  	=  False  Auto  Hidden
 
+;==========================================  Autoreadonly  ==========================================================================>
+
+;===========================================  Variables  ============================================================================>
+INEQ_AbilityBase Ability
+
+;===============================================================================================================================
+;====================================	    Maintenance			================================================
+;================================================================================================
+
+; Deactivate and Lock ability
+Function FullReset()
+	DeactivateAbility()
+	LockAbility()
+EndFunction
+
+;===============================================================================================================================
+;====================================			Functions			================================================
+;================================================================================================
+
 bool Function isActivated()
 	return IsActive
 EndFunction
+;___________________________________________________________________________________________________________________________
 
 bool Function isUnlocked()
 	return IsUnlocked
 EndFunction
+;___________________________________________________________________________________________________________________________
 
 String Function getName()
 	return Name
 endfunction
+;___________________________________________________________________________________________________________________________
+
+bool Function hasMenu()
+	return Ability
+EndFunction
+;___________________________________________________________________________________________________________________________
 
 ; If active, will force the reference to the passed item
 Function AssignToEquipment(ObjectReference akEquipment)
@@ -36,6 +62,7 @@ Function AssignToEquipment(ObjectReference akEquipment)
 		ForceRefTo( akEquipment )
 	endif
 Endfunction
+;___________________________________________________________________________________________________________________________
 
 ;returns true if changed to true, returns false if already true
 bool Function UnlockAbility()
@@ -106,10 +133,12 @@ bool Function UnlockAbility()
 	
 	return IsUnlocked
 EndFunction
+;___________________________________________________________________________________________________________________________
 
 Function LockAbility()
 	IsUnlocked = False
 EndFunction
+;___________________________________________________________________________________________________________________________
 
 ; activates and adds ability to player if unlocked or cheatmode activated
 Function ActivateAbility()
@@ -120,23 +149,16 @@ Function ActivateAbility()
 		endif
 	Endif
 EndFunction
+;___________________________________________________________________________________________________________________________
 
+; Turns off the ability
 Function DeactivateAbility()
 	Clear()
 	AbilityToPlayer.Clear()
 	IsActive = False
 EndFunction
-
-
-Function FullReset()
-	DeactivateAbility()
-	LockAbility()
-EndFunction
-
 ;___________________________________________________________________________________________________________________________
 ;					Behavior related to letting Listeners register themselves for Menu access
-
-INEQ_AbilityBase Ability
 
 Function RegisterAbility(INEQ_AbilityBase akAbility)
 	Ability = akAbility
@@ -146,13 +168,9 @@ Function UnregisterAbility()
 	Ability = none
 EndFunction
 
-bool Function hasMenu()
-	return Ability
-EndFunction
-
-Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu)
+Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu, GlobalVariable MenuActive)
 	if Ability
-		Ability.AbilityMenu(Button, ListenerMenu)
+		Ability.AbilityMenu(Button, ListenerMenu, MenuActive)
 	else
 		Debug.Trace(self+ " attempted to access menu but no ability was registered")
 	endif

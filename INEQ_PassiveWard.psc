@@ -9,19 +9,16 @@ Scriptname INEQ_PassiveWard extends INEQ_AbilityBase
 ;	RegisterForAnimationEvent(pPlayer, "GetUpEnd")
 
 ;===========================================  Properties  ===========================================================================>
-GlobalVariable	Property	TimeScale	Auto
-
-Explosion Property crAtronachFrostExplosion auto
-ImageSpaceModifier Property RechargeImod auto
-Sound Property RechargeSoundFX auto
-
-Quest Property SMART__EssentialPlayer auto
-
 Message	Property	OptionsMenu			Auto
-;Message Property	TimeOptions			Auto
 Message	Property	ThreshholdOptions	Auto
 Message	Property	RangeOptions		Auto
-;Message	Property	PriorityOptions		Auto
+
+Quest	Property	SMART__EssentialPlayer	Auto
+GlobalVariable		Property	TimeScale	Auto
+
+Sound				Property	RechargeSoundFX	Auto
+ImageSpaceModifier	Property	RechargeImod	Auto
+Explosion			Property	crAtronachFrostExplosion	Auto
 
 bool	Property	bBalanced	=	True	Auto	Hidden
 
@@ -32,19 +29,16 @@ int		Property	RechargePR	=	90		Auto	Hidden
 int 	Property	ChargeTime	= 	120 	auto	Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
-
 int		Property	DEFThreshhold	=	5	Autoreadonly
 int		Property	DEFRange		=	30	Autoreadonly
 int		Property	DEFRechargePR	=	90	Autoreadonly
 int		Property	DEFChargeTime	=	120	Autoreadonly
 
-float	Property	SecondsInDay	=	86400.0	Autoreadonly	Hidden
-String	Property	CastStop	=	"CastStop"	Autoreadonly	Hidden
-String	Property	JumpDown	=	"JumpDown"	Autoreadonly	Hidden
+float	Property	SecondsInDay	=	86400.0		Autoreadonly
+String	Property	CastStop		=	"CastStop"	Autoreadonly
+String	Property	JumpDown		=	"JumpDown"	Autoreadonly
 
 ;===========================================  Variables  ============================================================================>
-ObjectReference EquipRef
-
 float previousHealth
 float maximumHealth
 float rateHealth
@@ -53,10 +47,11 @@ float previousTime
 int InstanceID
 
 ;===============================================================================================================================
-;====================================	    Start/Finish		================================================
+;====================================	    Maintenance			================================================
 ;================================================================================================
 
 Event OnEffectStart (Actor akTarget, Actor akCaster)
+	parent.EffectStart(akTarget, akCaster)
 	GetMagickaCost()
 	RegisterAbilityToAlias()
 EndEvent
@@ -64,8 +59,7 @@ EndEvent
 Event OnEffectFinish (Actor akTarget, Actor akCaster)
 	SMART__EssentialPlayer.stop()
 	RechargeImod.remove()
-	UnregisterForMagickaSiphonEvent()
-	UnregisterAbilityToAlias()
+	parent.EffectFinish(akTarget, akCaster)
 EndEvent
 
 ;===============================================================================================================================
@@ -293,14 +287,16 @@ EndFunction
 ;====================================			Menus			================================================
 ;================================================================================================
 
-Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu)
+Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu, GlobalVariable MenuActive)
 	bool abMenu = True
 	int aiButton
-	while abMenu
+	while abMenu && MenuActive.Value
 		setButton(Button)
 		aiButton = OptionsMenu.Show()
 		if aiButton == 0
-			return
+			abMenu = False
+		elseif aiButton == 9
+			MenuActive.SetValue(0)
 		elseif aiButton == 1	; Turn on Balanced (Magicka Based)
 			bBalanced = True
 		elseif aiButton == 2	; Turn off Balanced (Cooldown Based)
@@ -329,6 +325,7 @@ Function SetButton(INEQ_MenuButtonConditional Button)
 	endif
 	Button.set(4)
 	Button.set(5)
+	Button.set(9)
 EndFunction
 ;___________________________________________________________________________________________________________________________
 

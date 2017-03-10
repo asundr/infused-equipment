@@ -2,17 +2,21 @@ Scriptname INEQ_BoundArrowScript extends INEQ_AbilityBase
 {Attached to the ability's magic effect}
 
 ;===========================================  Properties  ===========================================================================>
-Ammo Property boundArrow  Auto  
+Ammo	Property	boundArrow	Auto  
+
+;==========================================  Autoreadonly  ==========================================================================>
+int		Property	ArrowCount	=	100	Autoreadonly
 
 ;===========================================  Variables  ============================================================================>
-ObjectReference EquipRef
+
 
 ;===============================================================================================================================
-;====================================		   Start/Finish		================================================
+;====================================	    Maintenance			================================================
 ;================================================================================================
 
 Event OnEffectFinish (Actor akTarget, Actor akCaster)
-	SelfRef.removeitem(boundArrow,SelfRef.getItemCount(boundArrow),TRUE)
+	SelfRef.removeitem(boundArrow, SelfRef.getItemCount(boundArrow), True)
+	parent.EffectFinish(akTarget, akCaster)
 EndEvent
 
 ;===============================================================================================================================
@@ -22,12 +26,12 @@ EndEvent
 State Equipped
 	
 	Event OnBeginState()
-		SelfRef.additem(boundArrow,100,TRUE)
-		SelfRef.equipItem(boundArrow, TRUE, TRUE)	
+		SelfRef.additem(boundArrow, ArrowCount, True)
+		SelfRef.equipItem(boundArrow, True, True)
 	EndEvent
 
 	Event OnEndState()
-		SelfREf.removeitem(boundArrow,SelfRef.getItemCount(boundArrow),TRUE)
+		SelfRef.removeitem(boundArrow, SelfRef.getItemCount(boundArrow), True)
 	EndEvent
 	
 EndState
@@ -35,10 +39,3 @@ EndState
 ;===============================================================================================================================
 ;====================================		   Functions		================================================
 ;================================================================================================
-
-;Event onLoad()
-;	if !(SelfRef.hasMagicEffect(GetBaseObject()))
-; 		;debug.trace("Bound Bow - Cell Attached, script active, but effect not found on "+SelfRef)
-;		dispel()
-;	endif
-;EndEvent
