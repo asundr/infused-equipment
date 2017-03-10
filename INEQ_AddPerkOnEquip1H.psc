@@ -1,10 +1,8 @@
-Scriptname INEQ_SheatheSoulTrap extends INEQ_AbilityBase  
-{Attached to the ability's magic effect}
+Scriptname INEQ_AddPerkOnEquip1H extends INEQ_AbilityBase1H
+{Adds the abilityes perk on equip}
 
 ;===========================================  Properties  ===========================================================================>
-Spell property SheathSpell auto
-
-String  Property  WeaponSheathe  = 	"WeaponSheathe"  	Autoreadonly		; weapon sheathed
+Perk	Property	SomePerk	Auto
 
 ;===========================================  Variables  ============================================================================>
 ObjectReference EquipRef
@@ -14,7 +12,7 @@ ObjectReference EquipRef
 ;================================================================================================
 
 Event OnEffectFinish (Actor akTarget, Actor akCaster)
-	UnregisterForAnimationEvent(selfRef, WeaponSheathe)
+	SelfRef.RemovePerk(somePerk)
 EndEvent
 
 ;===============================================================================================================================
@@ -24,15 +22,11 @@ EndEvent
 State Ready
 	
 	Event OnBeginState()
-		RegisterForAnimationEvent(selfRef, WeaponSheathe)
+		SelfRef.AddPerk(somePerk)
 	EndEvent
-
-	Event OnAnimationEvent(ObjectReference akSource, string EventName)
-		SheathSpell.cast(selfRef, selfRef)
-	EndEvent
-
+	
 	Event OnEndState()
-		UnregisterForAnimationEvent(selfRef, WeaponSheathe)
+		SelfRef.RemovePerk(somePerk)
 	EndEvent
 
 EndState

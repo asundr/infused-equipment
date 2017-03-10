@@ -1,10 +1,11 @@
-Scriptname INEQ_SheatheSoulTrap extends INEQ_AbilityBase  
-{Attached to the ability's magic effect}
+Scriptname INEQ_BoundPickaxe extends INEQ_AbilityBase  
+{Adds hidden pickaxe to inventory and mineing formlists}
 
 ;===========================================  Properties  ===========================================================================>
-Spell property SheathSpell auto
+Weapon property INEQ_Hands_BoundPickaxe_zPick Auto
 
-String  Property  WeaponSheathe  = 	"WeaponSheathe"  	Autoreadonly		; weapon sheathed
+FormList Property mineOreToolsList Auto
+Formlist Property DLC2StalhrimMineOreToolsList Auto
 
 ;===========================================  Variables  ============================================================================>
 ObjectReference EquipRef
@@ -14,7 +15,9 @@ ObjectReference EquipRef
 ;================================================================================================
 
 Event OnEffectFinish (Actor akTarget, Actor akCaster)
-	UnregisterForAnimationEvent(selfRef, WeaponSheathe)
+	mineOreToolsList.RemoveAddedForm(INEQ_Hands_BoundPickaxe_zPick)
+	DLC2StalhrimMineOreToolsList.RemoveAddedForm(INEQ_Hands_BoundPickaxe_zPick)
+	SelfRef.RemoveItem(INEQ_Hands_BoundPickaxe_zPick, SelfRef.GetItemCount(INEQ_Hands_BoundPickaxe_zPick), true)
 EndEvent
 
 ;===============================================================================================================================
@@ -24,15 +27,15 @@ EndEvent
 State Ready
 	
 	Event OnBeginState()
-		RegisterForAnimationEvent(selfRef, WeaponSheathe)
+		mineOreToolsList.AddForm(INEQ_Hands_BoundPickaxe_zPick)
+		DLC2StalhrimMineOreToolsList.AddForm(INEQ_Hands_BoundPickaxe_zPick)
+		SelfRef.Additem(INEQ_Hands_BoundPickaxe_zPick, 1, true)
 	EndEvent
-
-	Event OnAnimationEvent(ObjectReference akSource, string EventName)
-		SheathSpell.cast(selfRef, selfRef)
-	EndEvent
-
+	
 	Event OnEndState()
-		UnregisterForAnimationEvent(selfRef, WeaponSheathe)
+		mineOreToolsList.RemoveAddedForm(INEQ_Hands_BoundPickaxe_zPick)
+		DLC2StalhrimMineOreToolsList.RemoveAddedForm(INEQ_Hands_BoundPickaxe_zPick)
+		SelfRef.RemoveItem(INEQ_Hands_BoundPickaxe_zPick, SelfRef.GetItemCount(INEQ_Hands_BoundPickaxe_zPick), true)
 	EndEvent
 
 EndState

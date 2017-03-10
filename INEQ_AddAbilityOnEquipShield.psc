@@ -1,20 +1,17 @@
-Scriptname INEQ_SheatheSoulTrap extends INEQ_AbilityBase  
-{Attached to the ability's magic effect}
+Scriptname INEQ_AddAbilityOnEquipShield extends INEQ_AbilityBaseShield
 
 ;===========================================  Properties  ===========================================================================>
-Spell property SheathSpell auto
-
-String  Property  WeaponSheathe  = 	"WeaponSheathe"  	Autoreadonly		; weapon sheathed
+Spell property abAbilitySpell auto
 
 ;===========================================  Variables  ============================================================================>
 ObjectReference EquipRef
 
 ;===============================================================================================================================
-;====================================		    Start/Finish			================================================
+;====================================		    Start			================================================
 ;================================================================================================
 
 Event OnEffectFinish (Actor akTarget, Actor akCaster)
-	UnregisterForAnimationEvent(selfRef, WeaponSheathe)
+	SelfRef.removespell(abAbilitySpell)
 EndEvent
 
 ;===============================================================================================================================
@@ -24,15 +21,11 @@ EndEvent
 State Ready
 	
 	Event OnBeginState()
-		RegisterForAnimationEvent(selfRef, WeaponSheathe)
-	EndEvent
-
-	Event OnAnimationEvent(ObjectReference akSource, string EventName)
-		SheathSpell.cast(selfRef, selfRef)
+		SelfRef.addSpell(abAbilitySpell, false)
 	EndEvent
 
 	Event OnEndState()
-		UnregisterForAnimationEvent(selfRef, WeaponSheathe)
+		SelfRef.removespell(abAbilitySpell)
 	EndEvent
 
 EndState
