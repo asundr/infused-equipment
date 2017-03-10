@@ -9,7 +9,7 @@ Spell	Property	RechargeVisual	Auto
 Explosion property DLC1SC_LightningBoltImpactExplosion auto
 Explosion property DLC1VampDetectLifeExplosion auto
 
-ReferenceAlias Property AliasDT Auto
+ReferenceAlias Property DistanceTravelledAlias Auto
 
 Float	Property	ChargeDistance	=	1000.0	Autoreadonly			; in feet
 
@@ -18,7 +18,7 @@ String  Property  WeaponDrawn  = "WeaponDraw"  	Autoreadonly			; Draw weapon
 ;===========================================  Variables  ============================================================================>
 
 ObjectReference EquipRef
-INEQ_DistanceTravelled DT
+INEQ_DistanceTravelled DistanceTravelled
 bool bRecharged
 bool bRegistered
 
@@ -27,7 +27,7 @@ bool bRegistered
 ;================================================================================================
 
 Event OnEffectStart(Actor akTarget, Actor akCaster)
-	DT = AliasDT as INEQ_DistanceTravelled
+	DistanceTravelled = DistanceTravelledAlias as INEQ_DistanceTravelled
 	bRecharged = false
 	bRegistered = false
 EndEvent
@@ -35,11 +35,12 @@ EndEvent
 Event OnEffectFinish (Actor akTarget, Actor akCaster)
 	UnregisterForUpdate()
 	UnregisterForAnimationEvent(selfRef, WeaponDrawn)
+	DistanceTravelled.UnregisterForEvent(self)
 EndEvent
 
 Event OnPlayerLoadGame()
 	if !bRegistered
-		bRegistered = DT.RegisterForEvent(self as INEQ_EventListenerBase, ChargeDistance)
+		bRegistered = DistanceTravelled.RegisterForEvent(self as INEQ_EventListenerBase, ChargeDistance)
 	endif
 EndEvent
 
@@ -66,7 +67,7 @@ State Equipped
 		if(bRecharged)
 			GoToState("Active")
 		else				;if !bRegistered
-			bRegistered = DT.RegisterForEvent(self as INEQ_EventListenerBase, ChargeDistance) 			;have two modes, time based and distance based
+			bRegistered = DistanceTravelled.RegisterForEvent(self, ChargeDistance) 			;have two modes, time based and distance based
 		endif
 	EndEvent
 	

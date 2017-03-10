@@ -3,7 +3,9 @@ Scriptname INEQ_SharedCharges extends ReferenceAlias
 
 ;===========================================  Properties  ===========================================================================>
 
-float	Property	ChargeDistance	=	300.0	Autoreadonly
+float	Property	ChargeDistance	=	110.0	Autoreadonly	Hidden	; 2000
+float	Property	ChargeMagicka	=	150.0	Autoreadonly	Hidden	; 
+int		Property	PriorityMagicka	=	10		Autoreadonly	Hidden	; 100
 
 ;===========================================  Variables  ============================================================================>
 Actor SelfRef
@@ -24,25 +26,40 @@ EndEvent
 
 ; Registers for events on load if they should be active
 Event OnPlayerLoadGame()
-	Debug.MessageBox("Player load for shared charges")
 	RegisterForDistanceTravelledEvent()
+	RegisterForMagickaSiphonEvent()
 EndEvent
 	
 ;===============================================================================================================================
 ;====================================			Functions			================================================
 ;================================================================================================
 
-Function addCharge(int iRequest = 1)
-	numCharges += iRequest
-	if numCharges >= maxCharges
-		numCharges = maxCharges
-	else
-		RegisterForDistanceTravelledEvent()
-	endif
-	Debug.Notification("Shared charges: " +numCharges)
-endFunction
+; Returns number of charges
+int function getCharge()
+	return numCharges
+endfunction
+;___________________________________________________________________________________________________________________________
 
-; Will transfer the number of requested charges if available
+; Adds charge if below maximum. If sum is less than max, register for another event, otherwise set charge at max and unregister
+Function addCharge(int charge = 1)
+	if numCharges != maxCharges
+		numCharges += charge
+		if numCharges < maxCharges
+			Debug.Notification("Shared charges: " +numCharges)
+			RegisterForDistanceTravelledEvent()
+			RegisterForMagickaSiphonEvent()
+			return
+		else
+			numCharges = maxCharges
+			Debug.Notification("Shared charges: " +numCharges)
+		endif
+	endif
+	EventListener.UnregisterForDistanceTravelledEvent()
+	EventListener.UnregisterForMagickaSiphonEvent()
+EndFunction
+;___________________________________________________________________________________________________________________________
+
+; Will transfer the exact number of requested charges if available
 bool Function requestCharge(int iRequest)
 	return requestChargeUpTo(iRequest, True)
 EndFunction
@@ -53,11 +70,14 @@ int function requestChargeUpTo(int iRequest, bool bExact = False)
 		if numCharges >= iRequest
 			numCharges -= iRequest
 			RegisterForDistanceTravelledEvent()
+			RegisterForMagickaSiphonEvent()
 			Debug.Notification("Shared charges: " +numCharges)
 			return iRequest
 		elseif !bExact
 			iRequest = numCharges
 			numCharges = 0
+			RegisterForDistanceTravelledEvent()
+			RegisterForMagickaSiphonEvent()
 			Debug.Notification("Shared charges: " +numCharges)
 			return iRequest
 		else
@@ -67,27 +87,38 @@ int function requestChargeUpTo(int iRequest, bool bExact = False)
 		return 0
 	endif
 EndFunction
-
-int function getCharge()
-	return numCharges
-endfunction
+;___________________________________________________________________________________________________________________________
 
 ; Links to a class, that's capable of listening to EventListener behavior
 Function registerListener(INEQ_SharedChargesListener akListener)
 	EventListener = akListener
 	RegisterForDistanceTravelledEvent()
+	RegisterForMagickaSiphonEvent()
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
 ; Registers for DistanceTravelledEvent if not at maximum charges and not currently registered
 function RegisterForDistanceTravelledEvent()
-	if numCharges < maxCharges && EventListener && !EventListener.bDistanceChargingActive
+	if numCharges < maxCharges && EventListener ;&& !EventListener.isRegisteredDistanceTravelled()
 		EventListener.RegisterForDistanceTravelledEvent(ChargeDistance)
 	endif
 endFunction
 
 ; Receiver for DistanceTravelledEvent
 Function OnDistanceTravelledEvent()
+	addCharge()
+EndFunction
+;___________________________________________________________________________________________________________________________
+
+; Registers for MagickaSiphonEvent if not at maximum charges and not currently registered
+Function RegisterForMagickaSiphonEvent()
+	if numCharges < maxCharges && EventListener ;&& !EventListener.isRegisteredMagickaSiphon()
+		EventListener.RegisterForMagickaSiphonEvent(ChargeMagicka, PriorityMagicka)
+	endif
+EndFunction
+
+; Receiver for MagickaSiphonEvent
+function OnMagickaSiphonEvent()
 	addCharge()
 EndFunction
 ;___________________________________________________________________________________________________________________________

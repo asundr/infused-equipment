@@ -45,7 +45,7 @@ Event OnEffectStart(Actor akTarget, Actor akCaster)
 EndEvent
 
 Event OnEffectFinish(Actor akTarget, Actor akCaster)
-	DistanceTravelled.UnregisterForEvent(self as INEQ_EventListenerBase)
+	DistanceTravelled.UnregisterForEvent(self)
 EndEvent
 
 ;===============================================================================================================================
