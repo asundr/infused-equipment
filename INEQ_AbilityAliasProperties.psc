@@ -133,7 +133,8 @@ Function FullReset()
 	LockAbility()
 EndFunction
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;___________________________________________________________________________________________________________________________
+;					Behavior related to letting Listeners register themselves for Menu access
 
 INEQ_AbilityBase Ability
 
@@ -149,9 +150,9 @@ bool Function hasMenu()
 	return Ability
 EndFunction
 
-Function AbilityMenu(INEQ_MenuButtonConditional Button = None)
+Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu)
 	if Ability
-		Ability.AbilityMenu(Button)
+		Ability.AbilityMenu(Button, ListenerMenu)
 	else
 		Debug.Trace(self+ " attempted to access menu but no ability was registered")
 	endif

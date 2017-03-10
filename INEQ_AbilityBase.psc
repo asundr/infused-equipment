@@ -1,17 +1,20 @@
 Scriptname INEQ_AbilityBase extends INEQ_EventListenerBase Hidden
 
-Keyword		Property	KW_EnbaleAbility		Auto
-Actor		Property	SelfRef					Auto
+Keyword			Property	KW_EnbaleAbility		Auto
+Actor			Property	SelfRef					Auto
 ReferenceAlias	Property	AbilityAliasProperties	Auto
 
+ObjectReference	Property	EquipRef				Auto	Hidden
+
+;===============================================================================================================================
+;====================================	    Maintenance			================================================
+;================================================================================================
 
 
-ObjectReference EquipRef
 
-;Event OnEffectStart (Actor akTarget, Actor akCaster)
-;	SelfRef = akCaster
-;	GoToState( "Unequipped")
-;EndEvent
+;===============================================================================================================================
+;====================================			States			================================================
+;================================================================================================
 
 Auto State Unequipped
 	
@@ -71,7 +74,7 @@ EndFunction
 ;___________________________________________________________________________________________________________________________
 
 ; Menu palceholder - should be overriden by implementation of ability's menu
-Function AbilityMenu(INEQ_MenuButtonConditional Button = none)
+Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu)
 	Debug.Trace(self+ " attempted to access non-existent ability menu")
 EndFunction
 ;___________________________________________________________________________________________________________________________

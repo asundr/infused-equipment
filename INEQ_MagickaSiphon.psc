@@ -4,6 +4,10 @@ Scriptname INEQ_MagickaSiphon extends ReferenceAlias
 ;===========================================  Properties  ===========================================================================>
 GlobalVariable	Property	TimeScale	Auto
 
+float Property	DrainPercentage	=	0.25	Auto	Hidden	; 0.75	;should change to property
+
+;==========================================  Autoreadonly  ==========================================================================>
+
 String	Property	CastStop	=	"CastStop"	Autoreadonly	Hidden
 
 float	Property	SecondsInDay	=	86400.0	Autoreadonly	Hidden
@@ -13,8 +17,6 @@ float	Property	MPResetDelay	=	1.0		Autoreadonly	Hidden	; Limits rapid checking w
 
 bool	Property	bDebugTrace		=	True	Autoreadonly
 bool	Property	bDebugMessage	=	False	Autoreadonly
-
-float DrainPercentage = 0.25		; 0.75	;should change to property
 
 ;===========================================  Variables  ============================================================================>
 Actor SelfRef
@@ -294,8 +296,8 @@ State RegisterBusy
 		while 	index < max
 			registeredMP[index] =  registeredMP[index] - akModifier
 			if registeredMP[index] <= 0.0
-				registeredAb[index].OnMagickaSiphonEvent()
 				registeredAB[index].bRegisteredMS = False
+				registeredAb[index].OnMagickaSiphonEvent()
 				DeleteRegisterElement(index)
 				numRegistered -= 1
 				numPriority -= 1

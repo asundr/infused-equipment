@@ -46,13 +46,15 @@ Quest	Property	MainQuest	Auto
 Actor SelfRef
 
 
-INEQ_MenuButtonConditional Button
+INEQ_MenuButtonConditional	Button
+INEQ_ListenerMenu			ListenerMenu
 
 bool isBusy
 
 Event OnInit()
 	SelfRef = self.GetReference() as Actor
 	Button = MainQuest as INEQ_MenuButtonConditional
+	ListenerMenu = MainQuest as INEQ_ListenerMenu
 	Equipment = new INEQ_EquipmentScript[8]
 	Equipment[0] = Alias_Sword001 	as INEQ_EquipmentScript
 	Equipment[1] = Alias_Dagger001 	as INEQ_EquipmentScript
@@ -324,7 +326,7 @@ State AbilityOptions
 			elseif aiButton == 9
 				AbilitySelectMenu(AbilityArray, index, index)
 			else
-				currAbilities[aiButton - 1].AbilityMenu(Button)
+				currAbilities[aiButton - 1].AbilityMenu(Button, ListenerMenu)
 			endif
 		endwhile
 		

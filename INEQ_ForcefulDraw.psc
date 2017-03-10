@@ -2,93 +2,81 @@ Scriptname INEQ_ForcefulDraw extends INEQ_AbilityBase1H
 {Attached to the ability's magic effect}
 
 ;===========================================  Properties  ===========================================================================>
-Spell	property	DrawSpell		auto
-Spell	property	DrawVisual		auto
+Message	Property	OptionsMenu	Auto
+
+Spell	property	DrawSpell		Auto
+Spell	property	DrawVisual		Auto
 Spell	Property	RechargeVisual	Auto
 
-Explosion property DLC1SC_LightningBoltImpactExplosion auto
-Explosion property DLC1VampDetectLifeExplosion auto
+Explosion	property	DLC1SC_LightningBoltImpactExplosion	Auto
+Explosion	property	DLC1VampDetectLifeExplosion			Auto
 
-ReferenceAlias Property DistanceTravelledAlias Auto
+bool	Property	bBalanced		=	True	Auto	Hidden
+bool	Property	bUseCharges		=	True	Auto	Hidden
+bool	Property	bUseTimer		=	False	Auto	Hidden
 
-Float	Property	ChargeDistance	=	1000.0	Autoreadonly			; in feet
+Float	Property	ChargeDistance	=	100.0	Auto	Hidden			; in feet
+int		Property	ChargeTime		=	120		Auto	Hidden
 
-String  Property  WeaponDrawn  = "WeaponDraw"  	Autoreadonly			; Draw weapon
+;==========================================  Autoreadonly  ==========================================================================>
+float	Property	DEFChargeDistance	=	2000.0		Autoreadonly
+int		Property	DEFChargeTime		=	300			Autoreadonly
+
+String  Property	WeaponDrawn			=	"WeaponDraw"  	Autoreadonly		; Draw weapon
 
 ;===========================================  Variables  ============================================================================>
-
-ObjectReference EquipRef
-INEQ_DistanceTravelled DistanceTravelled
-bool bRecharged
-bool bRegistered
+bool bRecharged = False
 
 ;===============================================================================================================================
 ;====================================	    Start/Finish		================================================
 ;================================================================================================
 
 Event OnEffectStart(Actor akTarget, Actor akCaster)
-	DistanceTravelled = DistanceTravelledAlias as INEQ_DistanceTravelled
-	bRecharged = false
-	bRegistered = false
+	parent.EffectStart(akTarget, akCaster)
+	RegisterRecharge()
+	RegisterAbilityToAlias()
 EndEvent
 
 Event OnEffectFinish (Actor akTarget, Actor akCaster)
+	parent.EffectFinish(akTarget, akCaster)
 	UnregisterForUpdate()
 	UnregisterForAnimationEvent(selfRef, WeaponDrawn)
-	DistanceTravelled.UnregisterForEvent(self)
+	UnregisterForDistanceTravelledEvent()
+	UnregisterAbilityToAlias()
 EndEvent
 
 Event OnPlayerLoadGame()
-	if !bRegistered
-		bRegistered = DistanceTravelled.RegisterForEvent(self as INEQ_EventListenerBase, ChargeDistance)
-	endif
+	parent.PlayerLoadGame()
+	RegisterForDistanceTravelledEvent(ChargeDistance)
 EndEvent
 
 ;===============================================================================================================================
 ;====================================			States			================================================
 ;================================================================================================
 
-State Unequipped
-	
-;	Event OnUpdate()
-;		CastRecharge()
-;	EndEvent
-
-	Function OnDistanceTravelledEvent()
-		CastRecharge()
-	EndFunction
-
-EndState
-;___________________________________________________________________________________________________________________________
-
 State Equipped
-
+	
+	; Move to active state if alrady charged on equip
 	Event OnBeginState()
 		if(bRecharged)
 			GoToState("Active")
-		else				;if !bRegistered
-			bRegistered = DistanceTravelled.RegisterForEvent(self, ChargeDistance) 			;have two modes, time based and distance based
 		endif
 	EndEvent
 	
+	; Override that additionally update's state
 	Function OnDistanceTravelledEvent()
 		CastRecharge()
 		GoToState("Active")
 	EndFunction
 
-;	Event OnUpdate()
-;		CastRecharge()
-;		GoToState("Active")
-;	EndEvent
+	; Override that additionally updates state
+	Event OnUpdate()
+		CastRecharge()
+		GoToState("Active")
+	EndEvent
 
 EndState
 
-Function CastRecharge()
-	RechargeVisual.cast(SelfRef,SelfRef)
-	bRecharged = True
-	bRegistered = False
-	Debug.Notification("Forceful Draw recharged!")
-EndFunction
 ;___________________________________________________________________________________________________________________________
 
 State Active
@@ -97,9 +85,12 @@ State Active
 		registerForAnimationEvent(selfRef, WeaponDrawn)
 	EndEvent
 
+	; If SelfRef is in combat and not sneaking, activate the ability then update state
 	Event OnAnimationEvent(ObjectReference akSource, string EventName)
-		if selfRef.isInCombat() && !selfRef.isSneaking()
+		if selfRef.isInCombat() && !SelfRef.isSneaking()
 			CastForcefulDraw()
+			RegisterRecharge()
+			GoToState("Equipped")
 		endif
 	EndEvent
 
@@ -109,11 +100,119 @@ State Active
 
 EndState
 
+;===============================================================================================================================
+;====================================			Functions			================================================
+;================================================================================================
+
+; Recharges ability for time-based recharge
+Event OnUpdate()
+	CastRecharge()
+EndEvent
+;___________________________________________________________________________________________________________________________
+
+; Recharges ability for distance-based recharge
+Function OnDistanceTravelledEvent()
+	CastRecharge()
+EndFunction
+;___________________________________________________________________________________________________________________________
+
+; Toggles on the charge state, displays visuals and notifies the player
+Function CastRecharge()
+	RechargeVisual.cast(SelfRef,SelfRef)
+	bRecharged = True
+	Debug.Notification("Forceful Draw recharged!")
+EndFunction
+;___________________________________________________________________________________________________________________________
+
+; Toggles charge state and plays the ability's visuals and force effect
 Function CastForcefulDraw()
 	selfRef.placeatme(DLC1SC_LightningBoltImpactExplosion)
-	DrawVisual.cast(selfRef,selfRef)
+	DrawVisual.cast(SelfRef,SelfRef)
 	selfRef.placeatme(DLC1VampDetectLifeExplosion)
 	DrawSpell.cast(selfRef)
 	bRecharged = False
-	GoToState("Equipped")
+EndFunction
+;___________________________________________________________________________________________________________________________
+
+; Determins how to recharge the ability based on the settings
+Function RegisterRecharge()
+	if bUseCharges
+		if bUseTimer
+			RegisterForSingleUpdate(ChargeTime)
+		else
+			RegisterForDistanceTravelledEvent(ChargeDistance)
+		endif
+	else
+		RegisterForSingleUpdate(0.0)
+	endif
+EndFunction
+;___________________________________________________________________________________________________________________________
+
+; Used for updating recharge after charges in menu
+Function ReRegisterRecharge()
+	UnregisterForUpdate()
+	UnregisterForDistanceTravelledEvent()
+	RegisterRecharge()
+EndFunction
+;===============================================================================================================================
+;====================================			Menus			================================================
+;================================================================================================
+
+Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu)
+	bool abMenu = True
+	int aiButton
+	while abMenu
+		setButtonMain(Button)
+		aiButton = OptionsMenu.Show()
+		if aiButton == 0
+			return
+		elseif aiButton == 1	; Turn on Balanced (Magicka Based)
+			bBalanced = True
+			bUseCharges = True
+			bUseTimer = False
+			bRecharged = False
+			ChargeDistance = DEFChargeDistance
+		elseif aiButton == 2	; Turn off Balanced (Cooldown Based)
+			bBalanced = False
+		elseif aiButton == 3	; Turn on charges
+			bUseCharges = True
+			bRecharged = True
+		elseif aiButton == 4	; Turn off charges
+			bUseCharges = False
+			ReRegisterRecharge()
+		elseif aiButton == 5	; Turn on timer
+			bUseTimer = True
+			ReRegisterRecharge()
+		elseif aiButton == 6	; Turn off timer (use distance)
+			bUseTimer = False
+			ReRegisterRecharge()
+		elseif aiButton == 7	; Set Distance
+			ChargeDistance = ListenerMenu.DistanceTravelledCost(ChargeDistance, DEFChargeDistance)
+			ReRegisterRecharge()
+		elseif aiButton == 8	; Set time
+			ChargeTime = ListenerMenu.ChargeTime(ChargeTime, DEFChargeTime)
+			ReRegisterRecharge()
+		endif
+	endwhile
+EndFunction
+
+Function setButtonMain(INEQ_MenuButtonConditional Button)
+	Button.clear()
+	if bBalanced
+		Button.set(2)
+	else
+		Button.set(1)
+		if bUseCharges
+			Button.set(4)
+			if bUseTimer
+				Button.set(6)
+				Button.set(8)
+			else
+				Button.set(5)
+				Button.set(7)
+			endif
+		else
+			Button.set(3)
+		endif
+	endif
 EndFunction

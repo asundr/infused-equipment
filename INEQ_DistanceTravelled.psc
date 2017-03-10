@@ -238,6 +238,7 @@ function sendEvent()
 	GoToState("RegisterBusy")
 	while numRequests && registeredDist[numRequests - 1] && registeredDist[numRequests - 1] < TotalDistance.Value
 		numRequests -= 1
+		RegisteredAB[numRequests].bRegisteredDT = False
 		registeredAb[numRequests].OnDistanceTravelledEvent()
 		registeredAb[numRequests] = none
 		registeredDist[numRequests] = 0.0

@@ -2,34 +2,26 @@ Scriptname INEQ_BloodskalBlade extends INEQ_AbilityBase1H
 {Attached to the ability's magic effect}
 
 ;===========================================  Properties  ===========================================================================>
+Message	Property	MainMenu			Auto
+Message Property	ChargeOptionsMenu	Auto
+
 Spell	Property	DLC2BloodskalBladeSpellHoriz	Auto
 Spell	Property	DLC2BloodskalBladeSpellVert		Auto
 
 ReferenceAlias	Property	SharedChargesAlias		Auto
-ReferenceAlias	Property	DistanceTravelledAlias	Auto
-ReferenceAlias	Property	MagickaSiphonAlias		Auto
-
-Message	Property	MainMenu			Auto
-Message	Property	ChargeModeMenu		Auto
-Message Property	ChargeOptionsMenu	Auto
-Message	Property	PriorityMenu		Auto
-Message	Property	RechargeDistanceMenu Auto
-Message	Property	RechargeMagickaMenu	Auto
-Message	Property	ChargeStorageMenu	Auto
-Message	Property	ChargeCostMenu		Auto
 
 bool	Property	bBalanced		=	True	Auto	Hidden
 bool	Property	bUseCharges		=	True	Auto	Hidden
 
 int		Property	ChargeMode		=	0		Auto	Hidden	; 0=shared charges, 1=prioritize local, 2=only use local charges
-Int		Property	LocalCharge		=	0		Auto	Hidden
-
-Int 	Property	MaxLocalCharge	=	4		Auto	Hidden
 Int		Property	ChargeCost		=	2		Auto	Hidden
 float	Property	ChargeDistance	=	100.0	Auto	Hidden	; 1000.0, should be high relative to ChargeMagickaSiphon
 float	Property	ChargeMagickaMP =	50.0	Auto	Hidden
 int		Property	ChargeMagickaPR =	50		Auto	Hidden
 
+;==========================================  Autoreadonly  ==========================================================================>
+
+int		Property	DEFChargeMode		=	0		Autoreadonly
 int		Property	DEFMaxLocalCharge	=	4		Autoreadonly
 int		Property	DEFChargeCost		=	2		Autoreadonly
 float	Property	DEFChargeDistance	=	5000.0	Autoreadonly
@@ -45,29 +37,23 @@ String	Property PWForward2H	= 	"AttackPowerForward_FXstart"	Autoreadonly
 String	Property PWBackward2H	= 	"AttackPowerBackward_FXstart"	Autoreadonly
 
 ;===========================================  Variables  ============================================================================>
-ObjectReference EquipRef
+;ObjectReference EquipRef
 
 INEQ_SharedCharges SharedCharges
-INEQ_DistanceTravelled DistanceTravelled
-INEQ_MagickaSiphon MagickaSiphon
-
-bool bRegisteredDT = False
-bool bRegisteredMS = False
 
 ;===============================================================================================================================
-;====================================		    Start			================================================
+;====================================		  Start/Finish		================================================
 ;================================================================================================
 
 Event OnEffectStart(Actor akTarget, Actor akCaster)
 	SharedCharges = SharedChargesAlias as INEQ_SharedCharges
-	DistanceTravelled = DistanceTravelledAlias as INEQ_DistanceTravelled
-	MagickaSiphon = MagickaSiphonAlias as INEQ_MagickaSiphon
 	RegisterAbilityToAlias()
+	RestoreDefaultFields()
 EndEvent
 
 Event OnEffectFinish (Actor akTarget, Actor akCaster)
-	DistanceTravelled.UnregisterForEvent(Self)
-	MagickaSiphon.UnregisterForEvent(self)
+	UnregisterForDistanceTravelledEvent()
+	UnregisterForMagickaSiphonEvent()
 	UnregisterAbilityToAlias()
 	unregisterForAnimationEvent(SelfRef, PWStanding2H)
 	unregisterForAnimationEvent(SelfRef, PWRight2H)
@@ -77,28 +63,20 @@ Event OnEffectFinish (Actor akTarget, Actor akCaster)
 	UnregisterForAnimationEvent(selfRef, WeaponSwing)
 EndEvent
 
+Function RestoreDefaultFields()
+	MaxLocalCharge	=	DEFMaxLocalCharge
+	LocalCharge		=	0
+EndFunction
+
 Event OnPlayerLoad()
 	Maintenance()
 EndEvent
 
 Function Maintenance()
-	if DistanceTravelled
-		RegisterForDistanceTravelledEvent(ChargeDistance)
-	else
-		DistanceTravelled = DistanceTravelledAlias as INEQ_DistanceTravelled
-		if DistanceTravelled
-			RegisterForDistanceTravelledEvent(ChargeDistance)
-		endif
-	endif
-	
-	if MagickaSiphon
-		RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR)
-	else
-		MagickaSiphon = MagickaSiphonAlias as INEQ_MagickaSiphon
-		if MagickaSiphon
-			RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR)
-		endif
-	endif
+	parent.Maintenance()
+	;RegisterForDistanceTravelledEvent(ChargeDistance)
+	;RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR)
+	RegisterForRecharge()
 EndFunction
 
 ;===============================================================================================================================
@@ -116,7 +94,9 @@ State Equipped
 		elseif itemType > 0 && itemType < 5
 			GoToState("Equipped1H")
 		endif
-		Maintenance()
+		;RegisterForDistanceTravelledEvent(ChargeDistance)
+		;RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR)
+		RegisterForRecharge()
 	EndEvent
 
 EndState
@@ -225,6 +205,7 @@ EndState
 
 ; Returs whether the necessary charges were obtained
 bool function hasCharge()
+	Debug.Trace("BLOODSKAL: HASCHARGE() ACCESSED")
 	if ChargeMode == 0		;shared priority
 		; Attempts to use both from shared first if available
 		; else uses last from shared and a charge from local if available
@@ -235,7 +216,6 @@ bool function hasCharge()
 	elseif ChargeMode == 2	;local only
 		return removeLocalCharge(ChargeCost) 
 	endif
-	Debug.MessageBox("End of hasCharge")
 endfunction
 ;___________________________________________________________________________________________________________________________
 
@@ -244,8 +224,9 @@ int function removeLocalCharge(int iRequest)
 	if iRequest > 0 && LocalCharge >= iRequest
 		LocalCharge -= iRequest
 		Debug.Notification("Bloodskal Charges: " +LocalCharge)
-		RegisterForDistanceTravelledEvent(ChargeDistance)
-		RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR)
+		;RegisterForDistanceTravelledEvent(ChargeDistance)
+		;RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR)
+		RegisterForRecharge()
 		return iRequest
 	else
 		return 0
@@ -257,8 +238,9 @@ function addLocalCharge(int charge = 1)
 		LocalCharge += charge
 		if LocalCharge < MaxLocalCharge
 			Debug.Notification("Bloodskal Charges: " +LocalCharge)
-			RegisterForDistanceTravelledEvent(ChargeDistance)
-			RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR)
+			;RegisterForDistanceTravelledEvent(ChargeDistance)
+			;RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR)
+			RegisterForRecharge()
 			return
 		else
 			LocalCharge = MaxLocalCharge
@@ -270,48 +252,27 @@ function addLocalCharge(int charge = 1)
 endFunction
 ;___________________________________________________________________________________________________________________________
 
+; 
 function OnDistanceTravelledEvent()
-	bRegisteredDT = False
 	addLocalCharge()
 endfunction
-
-function RegisterForDistanceTravelledEvent(float akDistance)
-	if !bRegisteredDT && LocalCharge < MaxLocalCharge
-		bRegisteredDT = DistanceTravelled.RegisterForEvent(self, akDistance)
-	endif
-Endfunction
-
-Function UnregisterForDistanceTravelledEvent()
-	if bRegisteredDT
-		bRegisteredDT	= False
-		bRegisteredDT = DistanceTravelled.UnregisterForEvent(self)
-	endif
-EndFunction
 ;___________________________________________________________________________________________________________________________
 
+; 
 function OnMagickaSiphonEvent()
-	bRegisteredMS = False
 	addLocalCharge()
 EndFunction
 
-function RegisterForMagickaSiphonEvent(float akMagicka, int akPriority)
-	if !bRegisteredMS && LocalCharge < MaxLocalCharge
-		bRegisteredMS = MagickaSiphon.RegisterForEvent(self, akMagicka, akPriority)
-	endif
-endfunction
 
-Function UnregisterForMagickaSiphonEvent()
-	if bRegisteredMS
-		bRegisteredMS = False
-		MagickaSiphon.UnregisterForEvent(self)
-	endif
-endfunction
-
+Function RegisterForRecharge()
+	RegisterForDistanceTravelledEvent(ChargeDistance)
+	RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR)
+EndFunction
 ;===============================================================================================================================
 ;====================================		    Menus			================================================
 ;================================================================================================
 
-Function AbilityMenu(INEQ_MenuButtonConditional Button = none)
+Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu)
 	bool abMenu = True
 	int aiButton
 	while abMenu
@@ -329,11 +290,11 @@ Function AbilityMenu(INEQ_MenuButtonConditional Button = none)
 		elseif aiButton == 4		; Turn Off Charges
 			bUseCharges = False
 		elseif aiButton == 5		; Set ChargeMode
-			MenuChargeMode(Button)
+			ChargeMode = ListenerMenu.ChargeMode(ChargeMode, DEFChargeMode)
 		elseif aiButton == 6		; Charge Options
-			MenuChargeOptions()
+			MenuChargeOptions(ListenerMenu)
 		elseif aiButton == 7		; Set Priority
-			MenuPriority()
+			ChargeMagickaPR = ListenerMenu.MagickaSiphonPriority(ChargeMagickaPR, DEFChargeMagickaPR)
 		endif
 	endwhile
 EndFunction
@@ -348,47 +309,17 @@ Function SetButtonMain(INEQ_MenuButtonConditional Button)
 		Button.set(1)
 		if bUseCharges
 			Button.set(4)
-			Button.set(5)
 			Button.set(6)
-			Button.set(7)
 		else
 			Button.set(3)
 		endif
 	endif
-EndFunction
-;___________________________________________________________________________________________________________________________
-; Selects how the blade will use charges between the local and shared pool
-; 0=shared charges, 1=prioritize local, 2=only use local charges
-Function MenuChargeMode(INEQ_MenuButtonConditional Button)
-	bool abMenu = True
-	int aiButton
-	while abMenu
-		SetButtonChargeMode(Button)
-		aiButton = ChargeModeMenu.Show()
-		if aiButton == 0
-			return
-		else		
-			ChargeMode = aiButton - 1
-		endif
-	endwhile
-EndFunction
-
-Function SetButtonChargeMode(INEQ_MenuButtonConditional Button)
-	Button.clear()
-	if ChargeMode == 0
-		Button.set(2)
-		Button.set(3)
-	elseif ChargeMode == 1
-		Button.set(1)
-		Button.Set(3)
-	elseif ChargeMode == 2
-		Button.set(1)
-		Button.set(2)
-	endif
+	Button.set(5)
+	Button.set(7)
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
-Function MenuChargeOptions()
+Function MenuChargeOptions(INEQ_ListenerMenu ListenerMenu)
 	bool abMenu = True
 	int aiButton
 	while abMenu
@@ -396,179 +327,15 @@ Function MenuChargeOptions()
 		if aiButton == 0
 			return
 		elseif aiButton == 1	; Charge Cost DONT USE UNTIL HASCHARGE() GENARALIZED
-			MenuChargeCost()
+			ChargeCost = ListenerMenu.ChargeCost(ChargeCost, DEFChargeCost)
 			Debug.Notification("Option not available")
 		elseif aiButton == 2	; Charge Storage
-			MenuChargeStorage()
+			MaxLocalCharge = ListenerMenu.ChargeStorage(MaxLocalCharge, DEFMaxLocalCharge)
+			RegisterForRecharge()
 		elseif aiButton == 3	; Recharge MP
-			MenuMSCost()
+			ChargeMagickaMP = ListenerMenu.MagickaSiphonCost(ChargeMagickaMP, DEFChargeMagickaMP)
 		elseif aiButton == 4	; Recharge Distance
-			MenuDTCost()
-		endif
-	endwhile
-EndFunction
-
-Function MenuChargeCost()
-	bool abMenu = True
-	int aiButton
-	while abMenu
-		Debug.Notification("Currrent charge cost: " +ChargeCost)
-		aiButton = ChargeCostMenu.Show()
-		if aiButton == 0
-			return
-		elseif aiButton == 1
-			ChargeCost -= 50
-		elseif aiButton == 2
-			ChargeCost -= 10
-		elseif aiButton == 3
-			ChargeCost -= 5
-		elseif aiButton == 4
-			ChargeCost -= 1
-		elseif aiButton == 5
-			ChargeCost += 1
-		elseif aiButton == 6
-			ChargeCost += 5
-		elseif aiButton == 7
-			ChargeCost += 10
-		elseif aiButton == 8
-			ChargeCost += 50
-		elseif aiButton == 9
-			ChargeCost = DEFChargeCost
-		endif
-		if ChargeCost < 1
-			ChargeCost = 1
-		endif
-	endwhile
-EndFunction
-
-Function MenuChargeStorage()
-	bool abMenu = True
-	int aiButton
-	while abMenu
-		Debug.Notification("Currrent local charge storage: " +MaxLocalCharge)
-		aiButton = ChargeStorageMenu.Show()
-		if aiButton == 0
-			return
-		elseif aiButton == 1
-			MaxLocalCharge -= 50
-		elseif aiButton == 2
-			MaxLocalCharge -= 10
-		elseif aiButton == 3
-			MaxLocalCharge -= 5
-		elseif aiButton == 4
-			MaxLocalCharge -= 1
-		elseif aiButton == 5
-			MaxLocalCharge += 1
-		elseif aiButton == 6
-			MaxLocalCharge += 5
-		elseif aiButton == 7
-			MaxLocalCharge += 10
-		elseif aiButton == 8
-			MaxLocalCharge += 50
-		elseif aiButton == 9
-			MaxLocalCharge = DEFMaxLocalCharge
-		endif
-		if MaxLocalCharge < 1
-			MaxLocalCharge = 1
-		endif
-	endwhile
-EndFunction
-
-Function MenuMSCost()
-	bool abMenu = True
-	int aiButton
-	while abMenu
-		Debug.Notification("Currrent magicka siphon cost: " +ChargeMagickaMP)
-		aiButton = RechargeMagickaMenu.Show()
-		if aiButton == 0
-			return
-		elseif aiButton == 1
-			ChargeMagickaMP -= 1000.0
-		elseif aiButton == 2
-			ChargeMagickaMP -= 100.0
-		elseif aiButton == 3
-			ChargeMagickaMP -= 50.0
-		elseif aiButton == 4
-			ChargeMagickaMP -= 10.0
-		elseif aiButton == 5
-			ChargeMagickaMP += 10.0
-		elseif aiButton == 6
-			ChargeMagickaMP += 50.0
-		elseif aiButton == 7
-			ChargeMagickaMP += 100.0
-		elseif aiButton == 8
-			ChargeMagickaMP += 1000.0
-		elseif aiButton == 9
-			ChargeMagickaMP = DEFChargeMagickaMP
-		endif
-		if ChargeMagickaMP < 1.0
-			ChargeMagickaMP = 1.0
-		endif
-	endwhile
-EndFunction
-
-Function MenuDTCost()
-	bool abMenu = True
-	int aiButton
-	while abMenu
-		Debug.Notification("Currrent recharge distance: " +ChargeDistance)
-		aiButton = RechargeDistanceMenu.Show()
-		if aiButton == 0
-			return
-		elseif aiButton == 1
-			ChargeDistance -= 10000.0
-		elseif aiButton == 2
-			ChargeDistance -= 1000.0
-		elseif aiButton == 3
-			ChargeDistance -= 100.0
-		elseif aiButton == 4
-			ChargeDistance -= 50.0
-		elseif aiButton == 5
-			ChargeDistance += 50.0
-		elseif aiButton == 6
-			ChargeDistance += 100.0
-		elseif aiButton == 7
-			ChargeDistance += 1000.0
-		elseif aiButton == 8
-			ChargeDistance += 10000.0
-		elseif aiButton == 9
-			ChargeDistance = DEFChargeDistance
-		endif
-		if ChargeDistance < 50.0
-			ChargeDistance = 50.0
-		endif
-	endwhile
-EndFunction
-
-;___________________________________________________________________________________________________________________________
-
-; Allows player to set priority for magicka siphon, migher means sooner
-Function MenuPriority()
-	bool abMenu = True
-	int aiButton
-	while abMenu
-		Debug.Notification("Currrent priority: " +ChargeMagickaPR)
-		aiButton = PriorityMenu.Show()
-		if aiButton == 0
-			return
-		elseif aiButton == 1
-			ChargeMagickaPR -= 50
-		elseif aiButton == 2
-			ChargeMagickaPR -= 10
-		elseif aiButton == 3
-			ChargeMagickaPR -= 5
-		elseif aiButton == 4
-			ChargeMagickaPR -= 1
-		elseif aiButton == 5
-			ChargeMagickaPR += 1
-		elseif aiButton == 6
-			ChargeMagickaPR += 5
-		elseif aiButton == 7
-			ChargeMagickaPR += 10
-		elseif aiButton == 8
-			ChargeMagickaPR += 50
-		elseif aiButton == 9
-			ChargeMagickaPR = DEFChargeMagickaPR
+			ChargeDistance = ListenerMenu.DistanceTravelledCost(ChargeDistance, DEFChargeDistance)
 		endif
 	endwhile
 EndFunction
