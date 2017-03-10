@@ -5,9 +5,9 @@ ObjectReference EquipRef
 Function EquipCheckKW(ObjectReference akReference)
 	if akReference && akReference.HasKeyword(KW_EnbaleAbility)
 		EquipRef = akReference
-		GoToState("Ready")
+		GoToState("Equipped")
 	elseif SelfRef.GetEquippedShield() && EquipRef && SelfRef.GetEquippedShield() == (EquipRef.GetBaseObject() as Armor)
-		GoToState("Ready")
+		GoToState("Equipped")
 	endif
 EndFunction
 

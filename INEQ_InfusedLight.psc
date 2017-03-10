@@ -24,7 +24,7 @@ EndEvent
 ;====================================			States			================================================
 ;================================================================================================
 
-State Ready
+State Equipped
 
 	Event OnBeginState()
 		RegisterForAnimationEvent(selfRef, WeaponDraw)
@@ -50,7 +50,7 @@ State Active
 	EndEvent
 	
 	Event OnAnimationEvent(ObjectReference akSource, string EventName)
-		GoToState("Ready")
+		GoToState("Equipped")
 	endEVENT
 
 	Event OnEndState()

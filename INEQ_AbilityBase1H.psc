@@ -5,9 +5,9 @@ Scriptname INEQ_AbilityBase1H extends INEQ_AbilityBase Hidden
 ;Function EquipCheckKW(ObjectReference akReference)
 ;	if akReference && akReference.HasKeyword(KW_EnbaleAbility)
 ;		EquipRef = akReference
-;		GoToState("Ready")
+;		GoToState("Equipped")
 ;	elseif SelfRef.GetEquippedWeapon(0) && EquipRef && SelfRef.GetEquippedWeapon(0) == (EquipRef.GetBaseObject() as Weapon) || SelfRef.GetEquippedWeapon(1) && SelfRef.GetEquippedWeapon(1) == (EquipRef.GetBaseObject() as Weapon)
-;		GoToState("Ready")
+;		GoToState("Equipped")
 ;	endif
 ;EndFunction
 ;

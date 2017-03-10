@@ -40,7 +40,7 @@ EndEvent
 ;====================================			States			================================================
 ;================================================================================================
 
-State Ready
+State Equipped
 	
 	Event OnBeginState()
 		if(instanceID)
@@ -60,7 +60,7 @@ State Ready
 	
 EndState
 
-; power series : https://en.wikipedia.org/wiki/Logarithm#Power_series
+; power series : https://en.wikipedia.org/wiki/Logarithm#Power_series			NOTE: might only work (0,2]
 Float Function ApproximateNaturalLog(float x, float precision = 0.01, float divisor = 1.0)
 	if x <= 0.0
 		return -1.0
@@ -139,7 +139,7 @@ Function processHit()
 		if (-difference > threshhold)  && (-difference  < threshhold * (1+rangeMult) )
 			Debug.Notification("Player hit within (" +threshhold+ ", " +(threshhold*(1+rangeMult) as int)+ "): " +((-difference) as int)+ "!")
 			SelfRef.RestoreActorValue("health", difference)
-			GoToState("Ready")
+			GoToState("Equipped")
 		else
 			Debug.Notification(((-difference) as int) + " damage")
 		endif
@@ -151,7 +151,7 @@ Function processHit()
 		else
 			Game.ForceThirdPerson()
 		endif
-		GoToState("Ready")
+		GoToState("Equipped")
 	endif
 	previousHealth = selfRef.getActorValue("health")
 EndFunction

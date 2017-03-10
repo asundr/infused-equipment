@@ -24,7 +24,7 @@ ObjectReference EquipRef
 ;====================================			States			================================================
 ;================================================================================================
 
-State Ready
+State Equipped
 
 	Event OnHit(ObjectReference akAggressor, Form akSource, Projectile akProjectile, bool abPowerAttack, bool abSneakAttack, bool abBashAttack, bool abHitBlocked)
 		if (selfRef.getActorValuePercentage("Health") < HPthreshold) && !SelfRef.HasMagicEffect(DragonPriestMaskFireCloakFFSelf) && !SelfRef.isDead()

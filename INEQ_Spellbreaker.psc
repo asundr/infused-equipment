@@ -34,10 +34,10 @@ EndEvent
 
 ;___________________________________________________________________________________________________________________________
 
-State Ready
+State Equipped
 	
 	Event OnBeginState()
-;		Debug.Notification("Enter Ready")
+;		Debug.Notification("Enter Equipped")
 		SelfRef.removespell(abSpellbreaker)
 		RegisterForAnimationEvent(selfRef, BlockStart)
 	EndEvent
@@ -66,7 +66,7 @@ State Blocking
 
 	Event OnAnimationEvent(ObjectReference akSource, string EventName)
 		if  (akSource == selfRef) && ( EventName == BlockStop)
-			GoToState("Ready")
+			GoToState("Equipped")
 		endif
 	EndEvent
 
@@ -86,9 +86,9 @@ EndState
 ;	
 ;	if akReference.HasKeyword(KW_EnbaleAbility)
 ;		EquipRef = akReference
-;		GoToState("Ready")
+;		GoToState("Equipped")
 ;	elseif SelfRef.GetEquippedShield() && SelfRef.GetEquippedShield() == (EquipRef.GetBaseObject() as Armor)
-;		GoToState("Ready")
+;		GoToState("Equipped")
 ;		;check for kw
 ;		Debug.Notification("Old shield equipped. HasKW: " +SelfRef.GetEquippedShield().HasKeyword(KW_EnbaleAbility))
 ;	endif

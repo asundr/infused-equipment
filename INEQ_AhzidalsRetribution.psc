@@ -19,7 +19,7 @@ ObjectReference EquipRef
 
 ;===========================================	States	  ============================================================================>
 
-State Ready
+State Equipped
 	
 	Event OnHit(ObjectReference akAggressor, Form akSource, Projectile akProjectile, bool abPowerAttack, bool abSneakAttack, bool abBashAttack, bool abHitBlocked)
 		if ((akSource as Weapon) != None && !akSource.HasKeyword(WeapTypeBow) && (akAggressor as Actor) != None)

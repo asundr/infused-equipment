@@ -21,7 +21,7 @@ EndEvent
 ;====================================			States			================================================
 ;================================================================================================
 
-State Ready
+State Equipped
 	
 	Event OnBeginState()
 		RegisterForAnimationEvent(selfRef, WeaponSheathe)

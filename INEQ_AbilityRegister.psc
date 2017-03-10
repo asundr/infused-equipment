@@ -140,7 +140,7 @@ State Register
 ;				ForceRefIfActive(Alias_Staff001, akItemReference)
 			endif
 		endif
-		SelfRef.AddItem(akItemReference)
+		SelfRef.AddItem(akItemReference, 1, true)
 		isBusy = False
 		GoToState("")
 	EndEvent
