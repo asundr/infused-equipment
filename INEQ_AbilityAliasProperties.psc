@@ -133,3 +133,26 @@ Function FullReset()
 	LockAbility()
 EndFunction
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+INEQ_AbilityBase Ability
+
+Function RegisterAbility(INEQ_AbilityBase akAbility)
+	Ability = akAbility
+EndFunction
+
+Function UnregisterAbility()
+	Ability = none
+EndFunction
+
+bool Function hasMenu()
+	return Ability
+EndFunction
+
+Function AbilityMenu(INEQ_MenuButtonConditional Button = None)
+	if Ability
+		Ability.AbilityMenu(Button)
+	else
+		Debug.Trace(self+ " attempted to access menu but no ability was registered")
+	endif
+EndFunction

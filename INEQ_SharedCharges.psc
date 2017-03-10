@@ -10,7 +10,7 @@ int		Property	PriorityMagicka	=	10		Autoreadonly	Hidden	; 100
 ;===========================================  Variables  ============================================================================>
 Actor SelfRef
 
-int numCharges	= 0	;use GV for persistence?
+int numCharges	= 5	;use GV for persistence?
 int maxCharges	= 5
 
 INEQ_SharedChargesListener EventListener
