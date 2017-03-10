@@ -19,8 +19,12 @@ EffectShader property TargetFXS auto
 bool property bIsEnchantmentEffect = false auto
 {Set this to true if this soul trap is on a weapon enchantment or a spell that can do damage to deal with a fringe case}
 
-Sound Property MAGWardTestBreak auto
+Sound Property QSTDwemerGong	 auto
 Explosion property SomeExplosion auto
+
+Activator property AshPileObject auto
+VisualEffect  Property  MGTeleportOutEffect  Auto
+
 ;======================================================================================;
 ;  VARIABLES   /
 ;=============/
@@ -58,20 +62,26 @@ Event OnEffectFinish(Actor Target, Actor Caster)
 				debug.trace(victim + " is, in fact, dead.  Play soul trap visFX")
 
 				if (SomeExplosion)
-;					Debug.Notification("explosion cast")
-					Caster.placeatme(SomeExplosion)
-				else
-;					Debug.Notification("explosion FAILED")
+					;Caster.placeatme(SomeExplosion)
 				endif
+				
+			;Target.SetCriticalStage(Target.CritStage_DisintegrateStart)
+				
+				;Caster.PushActorAway(Target, -1000)
+				Target.ApplyHavokImpulse(Caster.GetPositionX() - Target.GetPositionX(), Caster.GetPositionY() - Target.GetPositionY(), Caster.GetPositionZ() - Target.GetPositionZ() + 100, 350.0)
 
-
-
-				TrapSoundFX.play(Caster)       ; play TrapSoundFX sound from player
-				TrapImod.apply()                                  ; apply isMod at full strength
-				TargetVFX.Play(victim,4.7,Caster)              ; Play TargetVFX and aim them at the player
-				CasterVFX.Play(Caster,5.9,victim)
-				TargetFXS.Play(victim,2)    						; Play Effect Shaders
-				CasterFXS.Play(Caster,3)
+				QSTDwemerGong.play(Caster)		
+				;TrapSoundFX.play(Caster)       ; play TrapSoundFX sound from player
+				;TrapImod.apply()                                  ; apply isMod at full strength
+				TargetVFX.Play(victim,2.7,Caster)              ; Play TargetVFX and aim them at the player
+				CasterVFX.Play(Caster,3.9,victim)
+			TargetFXS.Play(victim,3)    						; Play Effect Shaders
+				;CasterFXS.Play(Caster,3)
+				
+			;utility.wait(3)     
+			;Target.AttachAshPile(AshPileObject)
+			;Target.SetCriticalStage(Target.CritStage_DisintegrateEnd)
+				
 			else
 				debug.trace(victim + " is, in fact, dead, But the TrapSoul check failed or came back false")
 			endif

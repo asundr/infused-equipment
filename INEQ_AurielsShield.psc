@@ -1,10 +1,7 @@
-Scriptname INEQ_AurielsShield extends ActiveMagicEffect  
+Scriptname INEQ_AurielsShield extends INEQ_AbilityBaseShield  
 {Script for reflecting shield to appear to reflect certain incoming spells.}
 
 ;===========================================  Properties  ===========================================================================>
-
-Keyword property KW_EnbaleAbility auto
-
 Spell  Property ChargeSpell1 Auto
 Spell  Property ChargeSpell2 Auto
 Spell  Property ChargeSpell3 Auto
@@ -29,9 +26,6 @@ String  Property  BashStop   =  "bashStop"  	Autoreadonly		; stop bashing
 String  Property  BashRelease =  "bashRelease"	Autoreadonly		; power bashing
 
 ;===========================================  Variables  ============================================================================>
-
-;Actor PlayerRef
-Actor SelfRef
 ObjectReference EquipRef
 bool RefIsPlayer
 
@@ -40,37 +34,22 @@ bool RefIsPlayer
 ;================================================================================================
 
 Event OnEffectStart (Actor akTarget, Actor akCaster)
-;	Debug.Notification("Ability added")
 	SelfRef = akCaster
 	RefIsPlayer = SelfRef == Game.GetPlayer()
-	GoToState( "Unequipped")
+EndEvent
+
+Event OnEffectFinish (Actor akTarget, Actor akCaster)
+	UnregisterForUpdate()
+	UnregisterForAnimationEvent(selfRef, BashRelease)
+	UnregisterForAnimationEvent(selfRef, BashExit)
+	UnregisterForAnimationEvent(selfRef, BashStop)
 EndEvent
 
 ;===============================================================================================================================
 ;====================================			States			================================================
 ;================================================================================================
 
-State Off
-	
-EndState
-
-;___________________________________________________________________________________________________________________________
-
-State Unequipped
-	
-	Event OnBeginState()
-		
-	EndEvent
-	
-	Event OnObjectEquipped(Form akBaseObject, ObjectReference akReference)
-;		Debug.Notification("equip")
-		EquipCheckKW(akReference)
-	EndEvent
-
-EndState
-;___________________________________________________________________________________________________________________________
-
-State Equipped
+State Ready
 	
 	Event OnBeginState()
 		if (RefIsPlayer)
@@ -180,12 +159,6 @@ State Equipped
 			
 	EndEvent
 	
-
-	Event OnObjectUnequipped(Form akBaseObject, ObjectReference akReference)
-		UnequipCheck(akReference)
-	EndEvent
-	
-	
 	Event OnEndState()
 		UnregisterForUpdate()
 		UnregisterForAnimationEvent(selfRef, BashRelease)
@@ -194,53 +167,3 @@ State Equipped
 	EndEvent
 
 EndState
-
-
-;===============================================================================================================================
-;====================================		   Functions		================================================
-;================================================================================================
-
-Function EquipCheckKW(ObjectReference akReference)
-;	Debug.Notification("ME-Reference: " +akReference.getformid()+ ", HasKeyword " +akReference.HasKeyword(KW_EnbaleAbility))
-;	Debug.Notification("ME-Alias: " +Alias_Armour.GetReference().getFormID()+ ", HasKeyword: " + Alias_Armour.GetReference().HasKeyword(KW_EnbaleAbility) )
-	if akReference.HasKeyword(KW_EnbaleAbility)
-;		Debug.Notification("KW found")
-		EquipRef = akReference
-		GoToState("Equipped")
-;	else
-;		Debug.Notification("Missing KW")
-	endif
-EndFunction
-
-;___________________________________________________________________________________________________________________________
-
-Function UnequipCheck(ObjectReference akReference)
-;		Debug.Notification("Unequip event...")
-		Debug.Notification("ME-Reference: " +akReference.getformid()+ ", HasKeyword " +akReference.HasKeyword(KW_EnbaleAbility))
-		if (akReference == EquipRef)
-;			Debug.Notification("Unequipped, effect disabled")
-			EquipRef = none
-			GoToState("Unequipped")
-;		else
-;			Debug.Notification("(" +akReference.getFormID()+ ") Not the equipped ref")
-		endif
-EndFunction
-
-;___________________________________________________________________________________________________________________________
-
-Function ResetState()
-	if !EquipRef.HasKeyword(KW_EnbaleAbility)
-		GoToState("Unequipped")
-	endif
-EndFunction
-
-;===============================================================================================================================
-;====================================		   Finish			================================================
-;================================================================================================
-
-Event OnEffectFinish (Actor akTarget, Actor akCaster)
-	UnregisterForUpdate()
-	UnregisterForAnimationEvent(selfRef, BashRelease)
-	UnregisterForAnimationEvent(selfRef, BashExit)
-	UnregisterForAnimationEvent(selfRef, BashStop)
-EndEvent

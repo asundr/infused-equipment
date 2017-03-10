@@ -1,10 +1,11 @@
-Scriptname INEQ_RuneBash extends INEQ_AbilityBase1H  
+Scriptname INEQ_InfusedLight extends INEQ_AbilityBase1H  
 {Attached to the ability's magic effect}
 
 ;===========================================  Properties  ===========================================================================>
-Spell property RuneSpell auto
+Spell property LightSpell auto
 
-String  Property  BashExit  = 	"bashExit"  	Autoreadonly			; End bashing
+String  Property	WeaponDraw		=	"WeaponDraw"  	Autoreadonly			; Draw weapon
+String	Property	WeaponSheathe	=	"WeaponSheathe"	Autoreadonly			; sheathe weapon
 
 ;===========================================  Variables  ============================================================================>
 ObjectReference EquipRef
@@ -14,7 +15,9 @@ ObjectReference EquipRef
 ;================================================================================================
 
 Event OnEffectFinish (Actor akTarget, Actor akCaster)
-	UnregisterForAnimationEvent(selfRef, BashExit)
+	SelfRef.RemoveSpell(LightSpell)
+	UnregisterForAnimationEvent(selfRef, WeaponDraw)
+	UnregisterForAnimationEVent(SelfRef, WeaponSheathe)
 EndEvent
 
 ;===============================================================================================================================
@@ -22,30 +25,37 @@ EndEvent
 ;================================================================================================
 
 State Ready
-	
+
 	Event OnBeginState()
-		RegisterForAnimationEvent(SelfRef, BashExit)
+		RegisterForAnimationEvent(selfRef, WeaponDraw)
+		SelfRef.RemoveSpell(LightSpell)
 	EndEvent
 
 	Event OnAnimationEvent(ObjectReference akSource, string EventName)
-		if (akSource == SelfRef) &&  (EventName == BashExit)
-			RuneSpell.cast(SelfRef)
-;			SelfRef.damageAv("stamina", 25)		;default cost
-		endif
-	EndEvent
+		GoToState("Active")
+	endEVENT
 
 	Event OnEndState()
-		UnregisterForAnimationEvent(SelfRef, BashExit)
+		UnregisterForAnimationEvent(selfRef, WeaponDraw)
 	EndEvent
 
 EndState
-
 ;___________________________________________________________________________________________________________________________
 
-State Cooldown
+State Active
 
 	Event OnBeginState()
-					
+		RegisterForAnimationEvent(SelfRef, WeaponSheathe)
+		SelfRef.addspell(LightSpell, false)
+	EndEvent
+	
+	Event OnAnimationEvent(ObjectReference akSource, string EventName)
+		GoToState("Ready")
+	endEVENT
+
+	Event OnEndState()
+		SelfRef.RemoveSpell(LightSpell)
+		UnregisterForAnimationEVent(SelfRef, WeaponSheathe)
 	EndEvent
 
 EndState

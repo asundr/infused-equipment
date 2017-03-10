@@ -1,10 +1,10 @@
-Scriptname INEQ_SheatheSoulTrap extends INEQ_AbilityBase  
-{Attached to the ability's magic effect}
+Scriptname INEQ_BoundWoodaxe extends INEQ_AbilityBase  
+{Adds hidden axe to inventory and woodcutting formlist}
 
 ;===========================================  Properties  ===========================================================================>
-Spell property SheathSpell auto
+Weapon property INEQ_Hands_BoundWoodaxe_zAxe Auto
 
-String  Property  WeaponSheathe  = 	"WeaponSheathe"  	Autoreadonly		; weapon sheathed
+FormList Property woodChoppingAxes Auto
 
 ;===========================================  Variables  ============================================================================>
 ObjectReference EquipRef
@@ -14,7 +14,8 @@ ObjectReference EquipRef
 ;================================================================================================
 
 Event OnEffectFinish (Actor akTarget, Actor akCaster)
-	UnregisterForAnimationEvent(selfRef, WeaponSheathe)
+	woodChoppingAxes.RemoveAddedForm(INEQ_Hands_BoundWoodaxe_zAxe)
+	SelfRef.RemoveItem(INEQ_Hands_BoundWoodaxe_zAxe, SelfRef.GetItemCount(INEQ_Hands_BoundWoodaxe_zAxe), true)
 EndEvent
 
 ;===============================================================================================================================
@@ -24,15 +25,13 @@ EndEvent
 State Ready
 	
 	Event OnBeginState()
-		RegisterForAnimationEvent(selfRef, WeaponSheathe)
+		woodChoppingAxes.AddForm(INEQ_Hands_BoundWoodaxe_zAxe)
+		SelfRef.Additem(INEQ_Hands_BoundWoodaxe_zAxe, 1, true)
 	EndEvent
-
-	Event OnAnimationEvent(ObjectReference akSource, string EventName)
-		SheathSpell.cast(selfRef, selfRef)
-	EndEvent
-
+	
 	Event OnEndState()
-		UnregisterForAnimationEvent(selfRef, WeaponSheathe)
+		woodChoppingAxes.RemoveAddedForm(INEQ_Hands_BoundWoodaxe_zAxe)
+		SelfRef.RemoveItem(INEQ_Hands_BoundWoodaxe_zAxe, SelfRef.GetItemCount(INEQ_Hands_BoundWoodaxe_zAxe), true)
 	EndEvent
 
 EndState

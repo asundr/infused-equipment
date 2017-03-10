@@ -1,132 +1,149 @@
-Scriptname INEQ_BloodskalBlade extends activemagiceffect  
+Scriptname INEQ_BloodskalBlade extends INEQ_AbilityBase1H
 {Attached to the ability's magic effect}
 
 ;===========================================  Properties  ===========================================================================>
-
-Keyword property KW_EnbaleAbility auto
-
 Spell Property DLC2BloodskalBladeSpellHoriz auto
 Spell Property DLC2BloodskalBladeSpellVert auto
 
 String  Property  WeaponSwing  = 	"weaponSwing"  	Autoreadonly			; weapon attack
-;String  Property  BlockStart  =  "blockStartOut"  	Autoreadonly		; start blocking
+
+;String	Property PWStanding1H	= 	"weaponSwing"	Autoreadonly	;"attackPowerStart_Sprint" ;"attackPowerStartInPlace"	;"PowerAttackStartInPlace"	
+;String	Property PWRight1H		= 	"weaponSwing"	Autoreadonly	;"attackPowerStartRight"		;"PowerAttackStartRight"	
+;String	Property PWLeft1H		= 	"weaponSwing"	Autoreadonly	;"attackPowerStartLeft"		;"PowerAttackStartLeft"		
+;String	Property PWForward1H	= 	"weaponSwing"	Autoreadonly	;"attackPowerStartForward"	;"PowerAttackStartForward"	
+;String	Property PWBackward1H	= 	"weaponSwing"	Autoreadonly	;"attackPowerStartBackward"	;"PowerAttackStartBackward"	
+
+String	Property PWStanding2H	= 	"AttackPowerStanding_FXstart"	Autoreadonly
+String	Property PWRight2H		= 	"AttackPowerRight_FXstart"		Autoreadonly
+String	Property PWLeft2H		= 	"AttackPowerLeft_FXstart"		Autoreadonly
+String	Property PWForward2H	= 	"AttackPowerForward_FXstart"	Autoreadonly
+String	Property PWBackward2H	= 	"AttackPowerBackward_FXstart"	Autoreadonly
+
 
 ;===========================================  Variables  ============================================================================>
-
-Actor SelfRef
 ObjectReference EquipRef
 
 ;===============================================================================================================================
 ;====================================		    Start			================================================
 ;================================================================================================
 
-Event OnEffectStart (Actor akTarget, Actor akCaster)
-;	Debug.Notification("Ability added")
-	SelfRef = akCaster
-	GoToState( "Unequipped")
+Event OnEffectFinish (Actor akTarget, Actor akCaster)
+	unregisterForAnimationEvent(SelfRef, PWStanding2H)
+	unregisterForAnimationEvent(SelfRef, PWRight2H)
+	unregisterForAnimationEvent(SelfRef, PWLeft2H)
+	unregisterForAnimationEvent(SelfRef, PWBackward2H)
+	unregisterForAnimationEvent(SelfRef, PWForward2H)
+	UnregisterForAnimationEvent(selfRef, WeaponSwing)
 EndEvent
 
 ;===============================================================================================================================
 ;====================================			States			================================================
 ;================================================================================================
 
-State Off
-
-EndState
-
-;___________________________________________________________________________________________________________________________
-
-State Unequipped
-	
-	Event OnBeginState()
-		
-	EndEvent
-	
-	Event OnObjectEquipped(Form akBaseObject, ObjectReference akReference)
-;		Debug.Notification("equip")
-		EquipCheckKW(akReference)
-	EndEvent
-
-EndState
-;___________________________________________________________________________________________________________________________
-
 State Ready
 	
+	Event OnBeginState()
+		int itemType = SelfRef.getEquippedItemType(1)
+		if itemType == 5
+			GoToState("Ready2HGreatsword")
+		elseif itemType == 6
+			GoToState("Ready2HOther")
+		elseif itemType > 0 && itemType < 5
+			GoToState("Ready1H")
+		endif
+	EndEvent
+
+EndState
+
+State Ready1H
+
 	Event OnBeginState()
 		RegisterForAnimationEvent(SelfRef, WeaponSwing)
 	EndEvent
 
 	Event OnAnimationEvent(ObjectReference akSource, string EventName)
-
-		int direction = ( selfRef.GetAnimationVariableFloat( "Direction" ) * 4) as int
-
-		if (akSource == Game.GetPlayer())
-			if  eventname == WeaponSwing &&\
-					selfref.GetAnimationVariableBool("bAllowRotation") &&\
-				   !selfref.GetAnimationVariableBool("isBlocking") &&\
-				   !selfref.GetAnimationVariableBool("isBashing") &&\
-				   !selfref.GetAnimationVariableBool("isSneaking")
-				if (   direction % 2 == 0)
-					DLC2BloodskalBladeSpellVert.cast(akSource)
+		if  SelfRef.GetAnimationVariableBool("bAllowRotation") &&  !SelfRef.GetAnimationVariableBool("isBlocking") &&\
+				!SelfRef.GetAnimationVariableBool("isBashing") &&   !SelfRef.GetAnimationVariableBool("isSneaking")
+			if SelfRef.GetAnimationVariableFloat("Speed") == 0
+				DLC2BloodskalBladeSpellVert.cast(selfRef)
+			else
+				float direction = selfRef.GetAnimationVariableFloat( "Direction" )
+				if (direction == 0.25 || direction == 0.75)
+					DLC2BloodskalBladeSpellHoriz.cast(SelfRef)
+;				elseif (direction == 0.00 || direction == 1.00 || direction == 0.5)
 				else
-					DLC2BloodskalBladeSpellHoriz.cast(akSource)
+					DLC2BloodskalBladeSpellVert.cast(selfRef)
+				endif
+;				if (   (( selfRef.GetAnimationVariableFloat( "Direction" ) * 4) as int) % 2 == 0)
+;					DLC2BloodskalBladeSpellVert.cast(akSource)
+;				else
+;					DLC2BloodskalBladeSpellHoriz.cast(akSource)
+;				endif
+			endif
+		endif
+	EndEvent
+
+	Event OnEndState()
+		UnregisterForAnimationEvent(SelfRef, WeaponSwing)
+	EndEvent
+	
+EndState
+
+State Ready2HOther
+
+	Event OnBeginState()
+		RegisterForAnimationEvent(SelfRef, WeaponSwing)
+	EndEvent
+
+	Event OnAnimationEvent(ObjectReference akSource, string EventName)
+		if  SelfRef.GetAnimationVariableBool("bAllowRotation") &&  !SelfRef.GetAnimationVariableBool("isBlocking") &&\
+				!SelfRef.GetAnimationVariableBool("isBashing") &&   !SelfRef.GetAnimationVariableBool("isSneaking")
+			if SelfRef.GetAnimationVariableFloat("Speed") == 0
+				DLC2BloodskalBladeSpellVert.cast(SelfRef)
+			else
+				float direction = selfRef.GetAnimationVariableFloat( "Direction" )
+				if (direction == 0.00 || direction == 1.00)
+					DLC2BloodskalBladeSpellVert.cast(selfRef)
+;				elseif (direction == 0.25 || direction == 0.75 || direction == 0.5)
+				else
+					DLC2BloodskalBladeSpellHoriz.cast(SelfRef)
 				endif
 			endif
 		endif
 	EndEvent
 
-	Event OnObjectUnequipped(Form akBaseObject, ObjectReference akReference)
-		UnequipCheck(akReference)
-	EndEvent
-	
 	Event OnEndState()
-		UnregisterForAnimationEvent(selfRef, WeaponSwing)
+		UnregisterForAnimationEvent(SelfRef, WeaponSwing)
 	EndEvent
 
 EndState
 
-;===============================================================================================================================
-;====================================		   Functions		================================================
-;================================================================================================
 
-Function EquipCheckKW(ObjectReference akReference)
-;	Debug.Notification("ME-Reference: " +akReference.getformid()+ ", HasKeyword " +akReference.HasKeyword(KW_EnbaleAbility))
-;	Debug.Notification("ME-Alias: " +Alias_Armour.GetReference().getFormID()+ ", HasKeyword: " + Alias_Armour.GetReference().HasKeyword(KW_EnbaleAbility) )
-	if akReference.HasKeyword(KW_EnbaleAbility)
-;		Debug.Notification("KW found")
-		EquipRef = akReference
-		GoToState("Ready")
-;	else
-;		Debug.Notification("Missing KW")
-	endif
-EndFunction
+State Ready2HGreatsword
 
-;___________________________________________________________________________________________________________________________
-
-Function UnequipCheck(ObjectReference akReference)
-;		Debug.Notification("Unequip event...")
-		Debug.Notification("ME-Reference: " +akReference.getformid()+ ", HasKeyword " +akReference.HasKeyword(KW_EnbaleAbility))
-		if (akReference == EquipRef)
-;			Debug.Notification("Unequipped, effect disabled")
-			EquipRef = none
-			GoToState("Unequipped")
-;		else
-;			Debug.Notification("(" +akReference.getFormID()+ ") Not the equipped ref")
+	Event OnBeginState()
+		registerForAnimationEvent(SelfRef, PWStanding2H)
+		registerForAnimationEvent(SelfRef, PWRight2H)
+		registerForAnimationEvent(SelfRef, PWLeft2H)
+		registerForAnimationEvent(SelfRef, PWBackward2H)
+		registerForAnimationEvent(SelfRef, PWForward2H)
+	EndEvent
+	
+	Event OnAnimationEvent(ObjectReference akSource, string EventName)
+		if EventName == PWStanding2H|| EventName == PWForward2H
+			DLC2BloodskalBladeSpellVert.cast(selfRef)
+;		elseif EventName == PWBackward2H || EventName == PWRight2H || EventName == PWLeft2H
+		else
+			DLC2BloodskalBladeSpellHoriz.cast(SelfRef)
 		endif
-EndFunction
-
-;___________________________________________________________________________________________________________________________
-
-Function ResetState()
-	if !EquipRef.HasKeyword(KW_EnbaleAbility)
-		GoToState("Unequipped")
-	endif
-EndFunction
-
-;===============================================================================================================================
-;====================================		   Finish			================================================
-;================================================================================================
-
-Event OnEffectFinish (Actor akTarget, Actor akCaster)
-	UnregisterForAnimationEvent(selfRef, WeaponSwing)
-EndEvent
+	EndEvent
+	
+	Event OnEndState()
+		unregisterForAnimationEvent(SelfRef, PWStanding2H)
+		unregisterForAnimationEvent(SelfRef, PWRight2H)
+		unregisterForAnimationEvent(SelfRef, PWLeft2H)
+		unregisterForAnimationEvent(SelfRef, PWBackward2H)
+		unregisterForAnimationEvent(SelfRef, PWForward2H)
+	EndEvent
+	
+EndState

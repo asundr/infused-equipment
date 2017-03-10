@@ -1,10 +1,7 @@
-Scriptname INEQ_AurielsBow  extends ActiveMagicEffect 
+Scriptname INEQ_AurielsBow  extends INEQ_AbilityBase 
 {Attached to the ability's magic effect}
 
 ;===========================================  Properties  ===========================================================================>
-
-Keyword property KW_EnbaleAbility auto
-
 GlobalVariable Property DLC1EclipseActive  Auto  
 GlobalVariable Property GameHour  Auto  
 
@@ -21,51 +18,34 @@ ImageSpaceModifier property LightImodFX auto
 ImageSpaceModifier property DarkImodFX auto
 {Dark spell iMod for spell}
 
-String  Property  BowDraw = "bowDraw"  autoreadonly
-String  Property  ArrowFired = "attackStop"  autoreadonly
+ReferenceAlias	Property	AliasDT	Auto
+
+String  Property  BowDraw 	= 	"bowDraw"  		autoreadonly
+String  Property  ArrowFired = 	"attackStop"  	autoreadonly
+
+Float	Property	ChargeDistance	=	200.0	Autoreadonly
 
 ;===========================================  Variables  ============================================================================>
-
-Actor selfRef
 ObjectReference EquipRef
 ImageSpaceModifier MyImageSpace = None
+INEQ_DistanceTravelled DT
+bool sunCharged
 
 ;===============================================================================================================================
-;====================================		    Start			================================================
+;====================================			States			================================================
 ;================================================================================================
 
-Event OnEffectStart (Actor akTarget, Actor akCaster)
-;	Debug.Notification("Ability added")
-	selfRef = akCaster
-	GoToState( "Unequipped")
+Event OnEffectStart(Actor akTarget, Actor akCaster)
+	DT = AliasDT as INEQ_DistanceTravelled
+	sunCharged = false
+	DT.RegisterForEvent(self , ChargeDistance)
 EndEvent
 
 ;===============================================================================================================================
 ;====================================			States			================================================
 ;================================================================================================
 
-State Off
-
-EndState
-
-State Unequipped
-	
-	Event OnBeginState()
-		
-	EndEvent
-	
-	Event OnUpdateGameTime()
-		ResetEclipse()
-	EndEvent
-	
-	Event OnObjectEquipped(Form akBaseObject, ObjectReference akReference)
-		EquipCheckKW(akReference)
-	EndEvent
-
-EndState
-;___________________________________________________________________________________________________________________________
-
-State Equipped
+State Ready
 	
 	Event OnBeginState()
 		RegisterForAnimationEvent(SelfRef, BowDraw)
@@ -75,25 +55,18 @@ State Equipped
 		GoToState("ArrowNocked")
 	EndEvent
 	
-	Event OnUpdateGameTime()
-		ResetEclipse()
-	EndEvent
-	
-	Event OnObjectUnequipped(Form akBaseObject, ObjectReference akReference)
-		UnequipCheck(akReference)
-	EndEvent
-	
 	Event OnEndState()
 		UnregisterForAnimationEvent(SelfRef, BowDraw)
 	EndEvent
 	
 EndState
 
+;___________________________________________________________________________________________________________________________
+
 State ArrowNocked
 
 	Event OnBeginState()
-Debug.Notification("Enter Nocked")
-		RegisterForAnimationEvent(Game.GetPlayer(), ArrowFired)
+		RegisterForAnimationEvent(SelfRef, ArrowFired)
 		GetSunGazeImod()
 	EndEvent
 	
@@ -103,50 +76,34 @@ Debug.Notification("Enter Nocked")
 				DLC1AurielsBowEclipseSpell.Cast(SelfRef, SelfRef)
 				RegisterForSingleUpdateGameTime(20 - GameHour.Value)
 				DLC1EclipseActive.Value = 1.0
-			else
+			elseif sunCharged
 				DLC1AurielsBowSunAttackSpell.Cast(SelfRef, SelfRef)
+				sunCharged = false
+				DT.RegisterForEvent(self , ChargeDistance)
 			endif
 		endif
-Debug.Notification("Exit Nocked via OnPlayerBowShot")
-		GoToState("Equipped")
+;Debug.Notification("Exit Nocked via OnPlayerBowShot")
+		GoToState("Ready")
 	EndEvent
 	
 	Event OnAnimationEvent(ObjectReference akSource, string asEventName)
-Debug.Notification("Exit Nocked via AnimationEvent")
+;Debug.Notification("Exit Nocked via AnimationEvent")
 		Utility.Wait(0.1)
-		GoToState("Equipped")
+		GoToState("Ready")
 	EndEvent
-	
-	Event OnUpdateGameTime()
-		ResetEclipse()
-	EndEvent
-	
+
 	Event OnEndState()
 		UnregisterForAnimationEvent(Game.GetPlayer(), ArrowFired)
 		GetSunGazeImod(False)
 	EndEvent
 
-
 EndState
-
-;===============================================================================================================================
-;====================================		   Functions		================================================
-;================================================================================================
-
-Function ResetEclipse()
-	DLC1EclipseActive.Value = 0
-	SelfRef.DispelSpell(DLC1AurielsBowEclipseSpell)
-EndFunction
-
-;___________________________________________________________________________________________________________________________
 
 ImageSpaceModifier Function GetSunGazeImod(bool activate = True)
 	if activate
 		if SelfRef.IsSneaking()
-;			Debug.Trace("Imod is Dark!")
 			MyImageSpace = DarkImodFX
 		else
-;			Debug.Trace("Imod is Light!")
 			MyImageSpace = LightImodFX
 		endif
 	else
@@ -155,38 +112,23 @@ ImageSpaceModifier Function GetSunGazeImod(bool activate = True)
 	Game.SetSunGazeImageSpaceModifier(MyImageSpace)
 EndFunction
 
-;___________________________________________________________________________________________________________________________
-
-Function EquipCheckKW(ObjectReference akReference)
-;	Debug.Notification("ME-Reference: " +akReference.getformid()+ ", HasKeyword " +akReference.HasKeyword(KW_EnbaleAbility))
-;	Debug.Notification("ME-Alias: " +Alias_Armour.GetReference().getFormID()+ ", HasKeyword: " + Alias_Armour.GetReference().HasKeyword(KW_EnbaleAbility) )
-	if akReference.HasKeyword(KW_EnbaleAbility)
-;		Debug.Notification("KW found: Ability effect active")
-		EquipRef = akReference
-		GoToState("Equipped")
-;	else
-;		Debug.Notification("Missing KW: Effect not activated")
-	endif
-EndFunction
-
-;___________________________________________________________________________________________________________________________
-
-Function UnequipCheck(ObjectReference akReference)
-;		Debug.Notification("Unequip event...")
-		if (akReference == EquipRef)
-;			Debug.Notification("Unequipped, effect disabled")
-			EquipRef = none
-			GoToState("Unequipped")
-;		else
-;			Debug.Notification("(" +akReference.getFormID()+ ") Not the equipped ref")
-		endif
-EndFunction
-
 ;===============================================================================================================================
-;====================================		   Finish			================================================
+;====================================	   Ext Functions		================================================
 ;================================================================================================
 
-Event OnEffectFinish (Actor akTarget, Actor akCaster)
-	
+;event for clearskies speel to rest eclipse
+
+
+Function OnDistanceTravelledEvent()
+	sunCharged = True
+	Debug.Notification("Auriel's sunburst recharged")
+EndFunction
+
+Event OnUpdateGameTime()
+	ResetEclipse()
 EndEvent
 
+Function ResetEclipse()
+	DLC1EclipseActive.Value = 0
+	SelfRef.DispelSpell(DLC1AurielsBowEclipseSpell)
+EndFunction

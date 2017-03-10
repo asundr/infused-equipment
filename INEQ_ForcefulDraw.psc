@@ -1,61 +1,53 @@
-Scriptname INEQ_ForcefulDraw extends ActiveMagicEffect  
+Scriptname INEQ_ForcefulDraw extends INEQ_AbilityBase1H
 {Attached to the ability's magic effect}
 
 ;===========================================  Properties  ===========================================================================>
-
-Keyword property KW_EnbaleAbility auto
-
-Spell property ForcefulDrawSpell auto
-Spell property VisualsSpell auto
+Spell	property	DrawSpell		auto
+Spell	property	DrawVisual		auto
+Spell	Property	RechargeVisual	Auto
 
 Explosion property DLC1SC_LightningBoltImpactExplosion auto
 Explosion property DLC1VampDetectLifeExplosion auto
 
+ReferenceAlias Property AliasDT Auto
+
+Float	Property	ChargeDistance	=	100.0	Autoreadonly
 
 String  Property  WeaponDrawn  = "WeaponDraw"  	Autoreadonly			; Draw weapon
 
-
 ;===========================================  Variables  ============================================================================>
 
-Actor SelfRef
 ObjectReference EquipRef
-
+INEQ_DistanceTravelled DT
 bool bRecharged
 
 ;===============================================================================================================================
-;====================================		    Start			================================================
+;====================================	    Start/Finish		================================================
 ;================================================================================================
 
-Event OnEffectStart (Actor akTarget, Actor akCaster)
-;	Debug.Notification("Ability added")
-	selfRef = akCaster
-	bRecharged = True
-	GoToState( "Unequipped")
+Event OnEffectStart(Actor akTarget, Actor akCaster)
+	DT = AliasDT as INEQ_DistanceTravelled
+	bRecharged = false
+EndEvent
+
+Event OnEffectFinish (Actor akTarget, Actor akCaster)
+	UnregisterForUpdate()
+	UnregisterForAnimationEvent(selfRef, WeaponDrawn)
 EndEvent
 
 ;===============================================================================================================================
 ;====================================			States			================================================
 ;================================================================================================
 
-State Off
-
-EndState
-
 State Unequipped
+	
+;	Event OnUpdate()
+;		CastRecharge()
+;	EndEvent
 
-	Event OnBeginState()
-;		Debug.Notification("State unequippped")
-	EndEvent
-	
-	Event OnUpdate()
-		bRecharged = True
-		Debug.Notification("Forceful Draw recharged!")
-	EndEvent
-	
-	Event OnObjectEquipped(Form akBaseObject, ObjectReference akReference)
-;		Debug.Notification("equip")
-		EquipCheckKW(akReference)
-	EndEvent
+	Function OnDistanceTravelledEvent()
+		CastRecharge()
+	EndFunction
 
 EndState
 ;___________________________________________________________________________________________________________________________
@@ -63,115 +55,56 @@ EndState
 State Ready
 
 	Event OnBeginState()
-;		Debug.Notification("State Ready")
+		if(bRecharged)
+			GoToState("Active")
+		else
+			;RegisterForSingleUpdate(5) ;900
+			DT.RegisterForEvent(self , ChargeDistance) 			;have two modes, time based and distance based
+		endif
+	EndEvent
+	
+	Function OnDistanceTravelledEvent()
+		CastRecharge()
+		GoToState("Active")
+	EndFunction
+
+;	Event OnUpdate()
+;		CastRecharge()
+;		GoToState("Active")
+;	EndEvent
+
+EndState
+
+Function CastRecharge()
+	RechargeVisual.cast(SelfRef,SelfRef)
+	bRecharged = True
+	Debug.Notification("Forceful Draw recharged!")
+EndFunction
+;___________________________________________________________________________________________________________________________
+
+State Active
+
+	Event OnBeginState()
 		registerForAnimationEvent(selfRef, WeaponDrawn)
 	EndEvent
 
 	Event OnAnimationEvent(ObjectReference akSource, string EventName)
-;			Debug.Notification("Weapon is drawn")
-			if selfRef.isInCombat()
-				if !selfRef.isSneaking()
-					CastForcefulDraw()
-				else
-;					Debug.Notifiction("Player is sneaking, not cast")
-				endif
-			else
-;				Debug.Notifiction("Player is not in combat, not cast")
-			endif
-	endEVENT
-
-	Event OnObjectUnequipped(Form akBaseObject, ObjectReference akReference)
-		UnequipCheck(akReference)
+		if selfRef.isInCombat() && !selfRef.isSneaking()
+			CastForcefulDraw()
+		endif
 	EndEvent
-	
+
 	Event OnEndState()
 		UnregisterForAnimationEvent(selfRef, WeaponDrawn)
 	EndEvent
 
 EndState
 
-;___________________________________________________________________________________________________________________________
-
-State Recharging
-
-	Event OnBeginState()
-		if(bRecharged)
-			GoToState("Ready")
-		else
-			RegisterForSingleUpdate(300) ;900
-		endif
-	EndEvent
-
-	Event OnUpdate()
-		bRecharged = True
-		Debug.Notification("Forceful Draw recharged!")
-		GoToState("Ready")
-	EndEvent
-
-	Event OnObjectUnequipped(Form akBaseObject, ObjectReference akReference)
-		UnequipCheck(akReference)
-	EndEvent
-
-	Event OnEndState()
-		
-	EndEvent
-
-EndState
-
-;===============================================================================================================================
-;====================================		   Functions		================================================
-;================================================================================================
-
 Function CastForcefulDraw()
 	selfRef.placeatme(DLC1SC_LightningBoltImpactExplosion)
-	VisualsSpell.cast(selfRef,selfRef)
+	DrawVisual.cast(selfRef,selfRef)
 	selfRef.placeatme(DLC1VampDetectLifeExplosion)
-	ForcefulDrawSpell.cast(selfRef)
+	DrawSpell.cast(selfRef)
 	bRecharged = False
-	GoToState("Recharging")
+	GoToState("Ready")
 EndFunction
-
-;___________________________________________________________________________________________________________________________
-
-Function EquipCheckKW(ObjectReference akReference)
-;	Debug.Notification("ME-Reference: " +akReference.getformid()+ ", HasKeyword " +akReference.HasKeyword(KW_EnbaleAbility))
-;	Debug.Notification("ME-Alias: " +Alias_Armour.GetReference().getFormID()+ ", HasKeyword: " + Alias_Armour.GetReference().HasKeyword(KW_EnbaleAbility) )
-	if akReference.HasKeyword(KW_EnbaleAbility)
-;		Debug.Notification("KW found")
-		EquipRef = akReference
-		GoToState("Recharging")
-;	else
-;		Debug.Notification("Missing KW")
-	endif
-EndFunction
-
-;___________________________________________________________________________________________________________________________
-
-Function UnequipCheck(ObjectReference akReference)
-;		Debug.Notification("Unequip event...")
-		Debug.Notification("ME-Reference: " +akReference.getformid()+ ", HasKeyword " +akReference.HasKeyword(KW_EnbaleAbility))
-		if (akReference == EquipRef)
-;			Debug.Notification("Unequipped, effect disabled")
-			EquipRef = none
-			GoToState("Unequipped")
-;		else
-;			Debug.Notification("(" +akReference.getFormID()+ ") Not the equipped ref")
-		endif
-EndFunction
-
-;___________________________________________________________________________________________________________________________
-
-Function ResetState()
-	if !EquipRef.HasKeyword(KW_EnbaleAbility)
-		GoToState("Unequipped")
-	endif
-EndFunction
-
-;===============================================================================================================================
-;====================================		   Finish			================================================
-;================================================================================================
-
-Event OnEffectFinish (Actor akTarget, Actor akCaster)
-	UnregisterForUpdate()
-	UnregisterForAnimationEvent(selfRef, WeaponDrawn)
-EndEvent
