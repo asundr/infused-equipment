@@ -88,7 +88,7 @@ Event OnAnimationEvent(ObjectReference akSource, string EventName)
 		if (EventName == EventCancelArrow)				;teleport cancelled
 ;			String var = "iState_NPCBowDrawn"
 ;			Debug.Notification("Teleport Cancelled... AnimationVariable " + var + ": "+ PlayerRef.GetAnimationVariableInt(var))
-			TeleportFailSound.play(PlayerRef)
+			;TeleportFailSound.play(PlayerRef)
 			bTeleport = False
 		elseif ArrowRef 		;&& (EventName == EventJump)						;teleport initiated
 			float dist2D = getDistanceXY(playerRef, ArrowRef)	
@@ -179,7 +179,7 @@ Event OnUnload()
 	UnregisterForUpdate()
 	ArrowRef = None
 	bTeleport = False
-	TeleportFailSound.play(PlayerRef)
+;	TeleportFailSound.play(PlayerRef)
 EndEvent
 ;___________________________________________________________________________________________________________________________
 

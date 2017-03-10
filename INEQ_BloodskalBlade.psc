@@ -38,12 +38,6 @@ String	Property PWBackward2H	= 	"AttackPowerBackward_FXstart"	Autoreadonly
 ;====================================	    Maintenance			================================================
 ;================================================================================================
 
-Event OnEffectStart(Actor akTarget, Actor akCaster)
-	parent.EffectStart(akTarget, akCaster)
-	RegisterAbilityToAlias()
-	RegisterForRecharge()
-EndEvent
-
 Function RestoreDefaultFields()
 	parent.RestoreDefaultFields()
 	bUseCharges		=	True

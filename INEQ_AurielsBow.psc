@@ -52,7 +52,6 @@ bool bUseTimer
 
 Event OnEffectStart(Actor akTarget, Actor akCaster)
 	parent.EffectStart(akTarget, akCaster)
-	RegisterAbilityToAlias()
 	RegisterForDistanceTravelledEvent(ChargeDistance)
 EndEvent
 

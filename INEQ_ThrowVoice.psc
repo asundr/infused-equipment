@@ -20,11 +20,6 @@ bool bUseShoutCharge
 ;====================================	    Maintenance			================================================
 ;================================================================================================
 
-Event OnEffectStart(Actor akTarget, Actor akCaster)
-	parent.EffectStart(akTarget, akCaster)
-	RegisterAbilityToAlias()
-EndEvent
-
 Function RestoreDefaultFields()
 	parent.RestoreDefaultFields()
 	bBalanced		= True
@@ -43,7 +38,7 @@ State Equipped
 	EndEvent
 
 	Event OnAnimationEvent(ObjectReference akSource, string EventName)
-		if SelfRef.isSneaking() && !SelfRef.isInCombat() && TeleportCost()
+		if SelfRef.isSneaking() && TeleportCost()
 			ThrowVoiceSpell.cast(SelfRef)
 		endif
 	EndEvent

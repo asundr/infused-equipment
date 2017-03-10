@@ -2,6 +2,7 @@ Scriptname INEQ_AbilityBase extends INEQ_EventListenerBase Hidden
 {Base object that disables/enables ability effects when un/equipping an infused item}
 
 ;===========================================  Properties  ===========================================================================>
+bool			Property	bHasMenu				Auto
 Keyword			Property	KW_EnbaleAbility		Auto
 ReferenceAlias	Property	AbilityAliasProperties	Auto
 Actor			Property	SelfRef					Auto	Hidden
@@ -17,6 +18,7 @@ ObjectReference	Property	EquipRef				Auto	Hidden
 Function EffectStart(Actor akTarget, Actor akCaster)
 	parent.EffectStart(akTarget, akCaster)
 	SelfRef = akTarget
+	RegisterAbilityToAlias()
 EndFunction
 
 Function EffectFinish(Actor akTarget, Actor akCaster)

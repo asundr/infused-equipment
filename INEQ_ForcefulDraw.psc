@@ -34,7 +34,6 @@ bool bRecharged
 Event OnEffectStart(Actor akTarget, Actor akCaster)
 	parent.EffectStart(akTarget, akCaster)
 	RegisterRecharge()
-	RegisterAbilityToAlias()
 EndEvent
 
 Function RestoreDefaultFields()

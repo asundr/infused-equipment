@@ -14,8 +14,8 @@ GlobalVariable	Property	CheatMode		Auto
 
 String Property Name Auto
 
-bool  Property  IsUnlocked  =  False  Auto  Hidden
-bool  Property  IsActive  	=  False  Auto  Hidden
+bool  Property  bIsUnlocked	=  False  Auto  Hidden
+bool  Property  bIsActive	=  False  Auto  Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
 
@@ -49,12 +49,12 @@ EndFunction
 ;================================================================================================
 
 bool Function isActivated()
-	return IsActive
+	return bIsActive
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
 bool Function isUnlocked()
-	return IsUnlocked
+	return bIsUnlocked
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
@@ -64,7 +64,7 @@ endfunction
 ;___________________________________________________________________________________________________________________________
 
 bool Function hasMenu()
-	return Ability
+	return Ability && Ability.bHasMenu
 EndFunction
 ;___________________________________________________________________________________________________________________________
 ;					Behavior related to letting Listeners register themselves for Menu access
@@ -81,29 +81,36 @@ Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu Listen
 	if Ability
 		Ability.AbilityMenu(Button, ListenerMenu, MenuActive)
 	else
-		Debug.Trace(self+ " attempted to access menu but no ability was registered")
+		Debug.Trace("[INEQ] Attempted to access menu but ability " +Name+ " was not registered on " +self)
 	endif
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
 ; If active, will force the reference to the passed item
 Function AssignToEquipment(ObjectReference akEquipment)
-	EquipRef = akEquipment
-	if akEquipment && IsActive
-		ForceRefTo( akEquipment )
+	if akEquipment
+		EquipRef = akEquipment
+		if  bIsActive
+			if Ability
+				Ability.EquipRef = None
+			else
+				Debug.Trace("[INEQ] Failed to register ability " +Name+ " on " +self)
+			endif
+			ForceRefTo(akEquipment)
+		endif
 	endif
 Endfunction
 ;___________________________________________________________________________________________________________________________
 
 ; activates and adds ability to player if unlocked or cheatmode activated
 Function ActivateAbility()
-	if  IsUnlocked || Cheatmode.value == 1
-		if  ! IsActive
+	if  bIsUnlocked || Cheatmode.value == 1
+		if !bIsActive
 			AbilityToPlayer.ForceRefTo(PlayerRef)
 			if EquipRef
 				ForceRefTo(EquipRef)
 			endif
-			IsActive = True
+			bIsActive = True
 		endif
 	Endif
 EndFunction
@@ -113,14 +120,14 @@ EndFunction
 Function DeactivateAbility()
 	Clear()
 	AbilityToPlayer.Clear()
-	IsActive = False
+	bIsActive = False
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
 ; Returns true if changed to true, returns false if already true
 bool Function UnlockAbility()
 	int index
-	if IsUnlocked
+	if bIsUnlocked
 		return false
 	endif
 	
@@ -129,7 +136,7 @@ bool Function UnlockAbility()
 		while index
 			index -= 1
 			if PlayerRef.hasSpell(LearningSpell[index])
-				IsUnlocked = True
+				bIsUnlocked = True
 				Debug.Notification("Unlocked: " +getName())
 				return true
 			endif
@@ -141,7 +148,7 @@ bool Function UnlockAbility()
 		while index
 			index -= 1
 			if PlayerRef.GetItemCount(LearningArmor[index])
-				IsUnlocked = True
+				bIsUnlocked = True
 				Debug.Notification("Unlocked: " +getName())
 				return true
 			endif
@@ -153,7 +160,7 @@ bool Function UnlockAbility()
 		while index
 			index -= 1
 			if PlayerRef.GetItemCount(LearningWeapon[index])
-				IsUnlocked = True
+				bIsUnlocked = True
 				Debug.Notification("Unlocked: " +getName())
 				return true
 			endif
@@ -165,7 +172,7 @@ bool Function UnlockAbility()
 		while index
 			index -= 1
 			if Game.IsWordUnlocked(LearningWord[index])
-				IsUnlocked = True
+				bIsUnlocked = True
 				Debug.Notification("Unlocked: " +getName())
 				return true
 			endif
@@ -177,17 +184,17 @@ bool Function UnlockAbility()
 		while index
 			index -= 1
 			if LearningEnch[index].PlayerKnows()
-				IsUnlocked = True
+				bIsUnlocked = True
 				Debug.Notification("Unlocked: " +getName())
 				return true
 			endif
 		endwhile
 	endif
 	
-	return IsUnlocked
+	return bIsUnlocked
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
 Function LockAbility()
-	IsUnlocked = False
+	bIsUnlocked = False
 EndFunction

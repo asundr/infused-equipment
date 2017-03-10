@@ -665,7 +665,7 @@ Function ActivateAll()
 	int index = Equipment.length
 	while index > 0
 		index -= 1
-		Equipment[index].AttemptActivate()
+		Equipment[index].ActivateAll()
 	endwhile
 EndFunction
 ;___________________________________________________________________________________________________________________________
@@ -675,7 +675,7 @@ function DeactivateAll(bool cheated = False)
 	int index = Equipment.length
 	while index > 0
 		index -= 1
-		Equipment[index].AttemptDeactivate(cheated)
+		Equipment[index].DeactivateAll(cheated)
 	endwhile
 endFunction
 ;___________________________________________________________________________________________________________________________
