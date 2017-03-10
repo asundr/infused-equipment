@@ -11,6 +11,9 @@ float	Property	SecondsInDay	=	86400.0	Autoreadonly	Hidden
 float	Property	CombatCheck		=	10.0	Autoreadonly	Hidden	; checks at most CombatCheck seconds after last update
 float	Property	MPResetDelay	=	1.0		Autoreadonly	Hidden	; Limits rapid checking when mp is close to full
 
+bool	Property	bDebugTrace		=	True	Autoreadonly
+bool	Property	bDebugMessage	=	False	Autoreadonly
+
 float DrainPercentage = 0.25		; 0.75	;should change to property
 
 ;===========================================  Variables  ============================================================================>
@@ -284,7 +287,7 @@ State RegisterBusy
 	function sendEvent(float akModifier)
 	DEBUGTEXT("SendEvent Override start", 0, True, True)	
 	float timedif = ((Utility.GetCurrentGameTime() - previousTime) / TimeScale.Value) * SecondsInDay
-	Debug.Messagebox("Before SendLoop:\nMPRateMag * TimeDif / PR = Modifier\n" +MagickaRateMag+ " * " +timedif+ " / " +numPriority+ " = " +akModifier+ "\n\nDrainMag * TimeDif / PR = Modifier\n" +DrainMag+ " * " +timedif+ " / " +numPriority+ " = " +akModifier)
+	;Debug.Messagebox("Before SendLoop:\nMPRateMag * TimeDif / PR = Modifier\n" +MagickaRateMag+ " * " +timedif+ " / " +numPriority+ " = " +akModifier+ "\n\nDrainMag * TimeDif / PR = Modifier\n" +DrainMag+ " * " +timedif+ " / " +numPriority+ " = " +akModifier)
 			
 		int index = numRegistered - numPriority
 		int max = numRegistered
@@ -292,6 +295,7 @@ State RegisterBusy
 			registeredMP[index] =  registeredMP[index] - akModifier
 			if registeredMP[index] <= 0.0
 				registeredAb[index].OnMagickaSiphonEvent()
+				registeredAB[index].bRegisteredMS = False
 				DeleteRegisterElement(index)
 				numRegistered -= 1
 				numPriority -= 1
@@ -688,7 +692,7 @@ endfunction
 
 ; Debugging Function for testing using trace and/or messageboxes
 function DEBUGTEXT(String text, int type = -1,  bool mp = false, bool listener = false, bool MBox = False)
-	if True
+	if bDebugTrace
 		String s = "" + GetState() + ":\t" +text
 		if type != -1
 			if mp || listener
@@ -720,7 +724,7 @@ function DEBUGTEXT(String text, int type = -1,  bool mp = false, bool listener =
 		endif
 		Debug.Trace(s)
 	endif
-	if False
+	if bDebugMessage
 		if MBox
 			Debug.Messagebox(text+ ":\tnumPriority=" +numPriority+ "\n0) Priority:" +registeredPR[0]+ " MP:" +registeredMP[0]+   "\n1) Priority:" +registeredPR[1]+ " MP:" +registeredMP[1]+"\n2) Priority:" +registeredPR[2]+ " MP:" +registeredMP[2])
 		endif

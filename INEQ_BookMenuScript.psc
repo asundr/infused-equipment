@@ -16,6 +16,6 @@ EndEvent
 Event OnContainerChanged(ObjectReference akNewContainer, ObjectReference akOldContainer)
 	if !akNewContainer
 		abRegister.StartRegister()
-		akOldContainer.additem(self, 1, false)
+		akOldContainer.additem(self, 1, true)
 	endif
 EndEvent

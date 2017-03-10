@@ -37,6 +37,7 @@ GlobalVariable	Property	CheatMode	Auto
 Message  	Property  	SelectAction  	Auto
 Message		Property	EquipSlotSelect	Auto
 Message		Property	AbilitySelect	Auto
+Message		Property	AbilityOptions	Auto
 Message		Property	OtherOptions	Auto
 Message		Property	FullResetWarn	Auto
 
@@ -88,14 +89,17 @@ Function MainMenu(bool abMenu = True, int aiButton = 0)
 		ElseIF aiButton == 1
 			StartUnlocking()
 		ElseIf aiButton == 2 
-			StartSettings()
+			StartSelectAbilities()
 		ElseIf aiButton == 3 
-			StartOptions()
+			StartAbilityOptions()
 		ElseIf aiButton == 4
+			StartOtherOptions()
+		elseif aiButton == 5
 			abMenu = False
 		EndIf
 	EndWhile
 EndFunction
+;___________________________________________________________________________________________________________________________
 
 
 State Register
@@ -142,6 +146,7 @@ State Register
 		endif
 		SelfRef.AddItem(akItemReference, 1, true)
 		isBusy = False
+		UnregisterForUpdate()
 		GoToState("")
 	EndEvent
 	
@@ -159,7 +164,7 @@ function ForceRefIfActive(ReferenceAlias akEquipmentAlias, ObjectReference akIte
 	Debug.Notification("Item has been infused!")
 endFunction
 
-;;;;;;;;;;;;;;;;;;;;;;;;;
+;___________________________________________________________________________________________________________________________
 
 State Unlocking
 	
@@ -182,114 +187,171 @@ State Unlocking
 	
 EndState
 
-;;;;;;;;;;;;;;;;;;;
+;___________________________________________________________________________________________________________________________
 
-State Settings
+
+State SelectAbilities
 
 	Event OnBeginState()
 		EquipmentSlotMenu()
 		GoToState("")
 	EndEvent
-	
-EndState
+	;___________________________________________________________________________________________________________________________
 
+	; Menu for (de)acitvating available abilities. Shows 4  options at a time, pressing next (button 9) recursively calls itself at a later index
+	Function AbilitySelectMenu(INEQ_AbilityAliasProperties[] AbilityArray, int startIndex = 0, int index = 0,  bool abMenu = True)
 
-Function EquipmentSlotMenu()
-	bool abMenu = True
-	int aiButton = 0
-	While abMenu
-		aiButton = EquipSlotSelect.Show() ; Main Menu
-		;abMenu = False
-		if aiButton == 0
-			;back return
-			abMenu = False
-		elseif aiButton == 9
-			;cancel
-			abMenu = False
-		else
-			AbilitySelectMenu(Equipment[aiButton - 1].AbilityAliasArray)
-		EndIf
-	EndWhile
-EndFunction
-
-
-
-; Menu for (de)acitvating available abilities. Shows 4  options at a time, pressing next (button 9) recursively calls itself at a later index
-Function AbilitySelectMenu(INEQ_AbilityAliasProperties[] AbilityArray, int startIndex = 0, int index = 0,  bool abMenu = True)
-
-	; Iterates ability list to find 4 unlocked abilities from a given index
-	int max = AbilityArray.length
-	INEQ_AbilityAliasProperties[] currAbilities = new INEQ_AbilityAliasProperties[4]
-	String messageText = ""
-	int count = 0
-	if AbilityArray[index] == none
-		index = max
-	endif
-	while index < max && count < 4
-		if AbilityArray[index].isUnlocked() || CheatMode.value
-			currAbilities[count] = AbilityArray[index]
-			count += 1
-			messageText += (count)+ ") " +AbilityArray[index].getName()+ "\n"
-		endif
-		index += 1
-		
-		; b/c array size may be larger than number of filled elements
+		; Iterates ability list to find 4 unlocked abilities from a given index
+		int max = AbilityArray.length
+		INEQ_AbilityAliasProperties[] currAbilities = new INEQ_AbilityAliasProperties[4]
+		String messageText = ""
+		int count = 0
 		if AbilityArray[index] == none
 			index = max
 		endif
-	endwhile
-
-	; Notifies player if they don't have any abilities in that slot
-	if currAbilities[0] == none && startIndex == 0
-		Debug.Notification("You don't have any abilities of this type")
-		return
-	endif
-	
-	int aiButton
-	While abMenu
-		Debug.MessageBox(messageText)
-		setButton(currAbilities, index  < max)
-		aiButton = AbilitySelect.Show()
-		if aiButton == 0
-			return	;Back Button
-		elseif aiButton == 9
-			AbilitySelectMenu(AbilityArray, index, index)	;Next Button
-		elseif aiButton%2 == 1
-			currAbilities[(aiButton - 1)/2].DeactivateAbility()
-			Button.set(aiButton, false)
-			Button.set(aiButton+1, True)
-		else
-			currAbilities[(aiButton - 1)/2].ActivateAbility()  ;item must be reinfused to get ability atm
-			Button.set(aiButton, false)
-			Button.set(aiButton - 1, true)
-		endif
-	endwhile
-	
-EndFunction
-
-;Formats a Button to display the correct Activate/deactivate options and a next button if necessary
-Function setButton(INEQ_AbilityAliasProperties[] array, bool belowMax)
-	Button.clear()
-	int index = array.length
-	while index > 0 
-		index -= 1
-		if array[index] != none
-			if array[index].isActivated()
-				Button.Set(2*index + 1)
-			else
-				Button.Set(2*index + 2)
+		while index < max && count < 4
+			if AbilityArray[index].isUnlocked() || CheatMode.value
+				currAbilities[count] = AbilityArray[index]
+				count += 1
+				messageText += (count)+ ") " +AbilityArray[index].getName()+ "\n"
 			endif
+			index += 1
+			
+			; b/c array size may be larger than number of filled elements
+			if AbilityArray[index] == none
+				index = max
+			endif
+		endwhile
+
+		; Notifies player if they don't have any abilities in that slot
+		if currAbilities[0] == none && startIndex == 0
+			Debug.Notification("You don't have any abilities of this type")
+			return
 		endif
-	endwhile
+		
+		int aiButton
+		While abMenu
+			Debug.MessageBox(messageText)
+			setButton(currAbilities, index  < max)
+			aiButton = AbilitySelect.Show()
+			if aiButton == 0
+				return	;Back Button
+			elseif aiButton == 9
+				AbilitySelectMenu(AbilityArray, index, index)	;Next Button
+			elseif aiButton%2 == 1
+				currAbilities[(aiButton - 1)/2].DeactivateAbility()
+				Button.set(aiButton, false)
+				Button.set(aiButton+1, True)
+			else
+				currAbilities[(aiButton - 1)/2].ActivateAbility()  ;item must be reinfused to get ability atm
+				Button.set(aiButton, false)
+				Button.set(aiButton - 1, true)
+			endif
+		endwhile
+		
+	EndFunction
+	;___________________________________________________________________________________________________________________________
 
-	if belowMax	; Enable next button if list isn't finished
-		Button.Set(9)
-	endif
-EndFunction
+	;Formats a Button to display the correct Activate/deactivate options and a next button if necessary
+	Function setButton(INEQ_AbilityAliasProperties[] array, bool belowMax)
+		Button.clear()
+		int index = array.length
+		while index > 0 
+			index -= 1
+			if array[index] != none
+				if array[index].isActivated()
+					Button.Set(2*index + 1)
+				else
+					Button.Set(2*index + 2)
+				endif
+			endif
+		endwhile
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+		if belowMax	; Enable next button if list isn't finished
+			Button.Set(9)
+		endif
+	EndFunction
+	
+EndState
 
-State Options
+;___________________________________________________________________________________________________________________________
+
+State AbilityOptions
+
+	Event OnBeginState()
+		EquipmentSlotMenu()
+		GoToState("")
+	EndEvent
+	;___________________________________________________________________________________________________________________________
+
+	Function AbilitySelectMenu(INEQ_AbilityAliasProperties[] AbilityArray, int startIndex = 0, int index = 0,  bool abMenu = True)
+		
+		;Iterate ability list to find 8 unlocked abilities from a given index
+		int max = AbilityArray.length
+		INEQ_AbilityAliasProperties[] currAbilities = new INEQ_AbilityAliasProperties[8]
+		String messageText = ""
+		int count = 0
+		if AbilityArray[index] == none
+			index = max
+		endif
+		while index < max && count < 8
+			if AbilityArray[index].hasMenu()
+				currAbilities[count] = AbilityArray[index]
+				count += 1
+				messageText += (count)+ ") " +AbilityArray[index].getName()+ "\n"
+			endif
+			index += 1
+			
+			; b/c array size may be larger than number of fileld elements
+			if AbilityArray[index] == none
+				index = max
+			endif
+		endwhile
+		
+		; Notifies player if the slot has no active abilities with options
+		if currAbilities[0] == none && startIndex == 0
+			Debug.Notification("No active abilities of this type have additional options")
+			return
+		endif
+		
+		int aiButton
+		while abMenu
+			Debug.MessageBox(messageText)
+			setButton(currAbilities, index < max)
+			aiButton = AbilityOptions.Show()
+			if aiButton == 0
+				return	;Back
+			elseif aiButton == 9
+				AbilitySelectMenu(AbilityArray, index, index)
+			else
+				currAbilities[aiButton - 1].AbilityMenu(Button)
+			endif
+		endwhile
+		
+	EndFunction
+
+	
+	; Formats a Button to Display the options for accessing the Abilities options and a next buttton if necessary
+	Function setButton(INEQ_AbilityAliasProperties[] array, bool belowMax)
+		Button.clear()
+		int index = array.length
+		while index > 0
+			index -= 1
+			if array[index] != none
+				Button.Set(index + 1)
+			endif
+		endwhile
+		
+		if belowMax	;Enable next button if list isn't finished
+			Button.Set(9)
+		endif
+	EndFunction
+	
+EndState
+
+;___________________________________________________________________________________________________________________________
+
+State OtherOptions
 
 	Event OnBeginState()
 		bool abMenu = True
@@ -361,9 +423,41 @@ function FullResetAll()
 	endwhile
 endFunction
 
-;;;;;;;;;;;;;;;;;;;;;;;
+;===============================================================================================================================
+;====================================		Shared Functions		================================================
+;================================================================================================
 
+; Presents the user with a list of item slots and calls the menu function on the slot selected
+Function EquipmentSlotMenu()
+	bool abMenu = True
+	int aiButton = 0
+	While abMenu
+		aiButton = EquipSlotSelect.Show() ; Main Menu
+		;abMenu = False
+		if aiButton == 0
+			;back return
+			abMenu = False
+		elseif aiButton == 9
+			;cancel
+			abMenu = False
+		else
+			AbilitySelectMenu(Equipment[aiButton - 1].AbilityAliasArray)
+		EndIf
+	EndWhile
+EndFunction
 
+;___________________________________________________________________________________________________________________________
+;							Empty placehoder functions for overwriting
+Function AbilitySelectMenu(INEQ_AbilityAliasProperties[] AbilityArray, int startIndex = 0, int index = 0,  bool abMenu = True)
+	Debug.Trace(self+ " accessed AbilitySelectMenu() in the Empty State")
+EndFunction
+
+Function SetButton(INEQ_AbilityAliasProperties[] array, bool belowMax)
+	Debug.Trace(self+ " accessed SetButton() in the Empty State")
+EndFunction
+
+;___________________________________________________________________________________________________________________________
+;							Functions to allow other objects to shortcut to parts of the menu
 Function StartRegister()
 	GoToState("Register")
 endFunction
@@ -372,10 +466,14 @@ Function StartUnlocking()
 	GoToState("Unlocking")
 Endfunction
 
-Function StartSettings()
-	GoToState("Settings")
+Function StartSelectAbilities()
+	GoToState("SelectAbilities")
 endFunction
 
-Function StartOptions()
-	GoToState("Options")
+Function StartAbilityOptions()
+	GoToState("AbilityOptions")
+EndFunction
+
+Function StartOtherOptions()
+	GoToState("OtherOptions")
 EndFunction
