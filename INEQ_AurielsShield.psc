@@ -2,6 +2,9 @@ Scriptname INEQ_AurielsShield extends INEQ_AbilityBaseShield
 {Script for reflecting shield to appear to reflect certain incoming spells.}
 
 ;===========================================  Properties  ===========================================================================>
+Message	Property	OptionsMenu			Auto
+Message	Property	ChargeIntervalMenu	Auto
+
 Spell  Property ChargeSpell1 Auto
 Spell  Property ChargeSpell2 Auto
 Spell  Property ChargeSpell3 Auto
@@ -11,33 +14,27 @@ Sound Property ChargSound Auto
 ImagespaceModifier Property ChargeIMod Auto
 ImagespaceModifier Property BlastIMod Auto
 
-;GlobalVariable Property TimesHit Auto
-;GlobalVariable Property CurrentStage Auto
-
-;Int Property HitsUntilFirstCharge = 5 Auto	Hidden
-;{Hit's required until the shiled reaches it's first charge (DEFAULT = 5)}
-;Int Property HitsUntilSecondCharge = 10 Auto Hidden
-;{Hit's required until the shiled reaches it's first charge (DEFAULT = 10)}
-;Int Property HitsUntilThirdCharge = 15 Auto Hidden
-;{Hit's required until the shiled reaches it's first charge (DEFAULT = 15)}
-
 ReferenceAlias	Property	SharedChargesAlias	Auto
 
-Int Property TimesHit Auto Hidden
-Int Property  LocalCharges Auto	Hidden
+bool	Property	bBalanced	=	True	Auto	Hidden
 
-Int Property ChargeInterval = 5 Autoreadonly Hidden
-Int Property MaxLocalCharge	= 3 Autoreadonly Hidden
-Int Property NumStages		= 3 Autoreadonly Hidden
+Int Property	ChargeMode		=	1	Auto	Hidden	;(0==prioritize shared charges, 1=prioritize local, 2= use local only)
+Int Property	ChargeInterval	=	5	Auto	Hidden
+
+;==========================================  Autoreadonly  ==========================================================================>
+Int Property	NumStages			=	3	Autoreadonly
+int Property	DEFChargeMode		=	1	Autoreadonly
+Int	Property	DEFMaxLocalCharge	=	3	Autoreadonly
+Int	Property	DEFChargeInterval	=	5	Autoreadonly
 
 String  Property  BashExit   =  "bashExit"  	Autoreadonly		; exit bashing
 String  Property  BashStop   =  "bashStop"  	Autoreadonly		; stop bashing
-String  Property  BashRelease =  "bashRelease"	Autoreadonly		; power bashing
+String  Property  BashRelease =	"bashRelease"	Autoreadonly		; power bashing
 
 ;===========================================  Variables  ============================================================================>
 ObjectReference EquipRef
 bool RefIsPlayer
-int chargePriority = 1		;(0==prioritize shared charges, 1=prioritize local, 2= use local only)
+int TimesHit
 
 INEQ_SharedCharges SharedCharges
 
@@ -46,11 +43,10 @@ INEQ_SharedCharges SharedCharges
 ;================================================================================================
 
 Event OnEffectStart (Actor akTarget, Actor akCaster)
-	TimesHit = 0
-	LocalCharges = 0
-	SelfRef = akCaster
+	RestoreDefaultFields()
 	RefIsPlayer = SelfRef == Game.GetPlayer()
 	SharedCharges = SharedChargesAlias as INEQ_SharedCharges
+	RegisterAbilityToAlias()
 EndEvent
 
 Event OnEffectFinish (Actor akTarget, Actor akCaster)
@@ -58,9 +54,16 @@ Event OnEffectFinish (Actor akTarget, Actor akCaster)
 	UnregisterForAnimationEvent(selfRef, BashRelease)
 	UnregisterForAnimationEvent(selfRef, BashExit)
 	UnregisterForAnimationEvent(selfRef, BashStop)
+	UnregisterAbilityToAlias()
 EndEvent
 
-
+Function RestoreDefaultFields()
+	TimesHit		=	0
+	LocalCharge		=	0
+	ChargeInterval	=	DEFChargeInterval
+	MaxLocalCharge	=	DEFMaxLocalCharge
+	ChargeMode		=	DEFChargeMode
+EndFunction
 
 ;===============================================================================================================================
 ;====================================			States			================================================
@@ -118,11 +121,7 @@ EndState
 ; When hit, increments times hit, possibly increasing the charge of the shield. Power attacks provide twice as much charge
 Event OnHit(ObjectReference akAggressor, Form akSource, Projectile akProjectile, bool abPowerAttack, bool abSneakAttack, bool abBashAttack, bool abHitBlocked)
 	if abHitBlocked
-		if abPowerAttack
-			TimesHit += 2
-		else
-			TimesHit += 1
-		endif
+		TimesHit += 1
 		if TimesHit >= ChargeInterval
 			AddCharge()
 			TimesHit %= ChargeInterval
@@ -169,14 +168,14 @@ EndState
 Event OnAnimationEvent(ObjectReference akSource, string EventName)
 	if RefIsPlayer
 		if (eventName == BashRelease)
-			if chargePriority == 0
+			if ChargeMode == 0
 				prioritizeShared()
-			elseif chargePriority == 1
+			elseif ChargeMode == 1
 				prioritizeLocal()
-			elseif chargePriority == 2
+			elseif ChargeMode == 2
 				localOnly()
 			else
-				Debug.Trace("INEQ_AurielsShield: Unhandled priority value " + chargePriority)
+				Debug.Trace("INEQ_AurielsShield: Unhandled priority value " + ChargeMode)
 			endif
 		endif
 	else
@@ -196,10 +195,10 @@ function prioritizeShared()
 	int total = SharedCharges.requestChargeUpTo(NumStages)
 	total += removeLocalChargeUpTo(NumStages - total)
 	castBashSpell(total)
-	UpdateShieldVisuals(localCharges + SharedCharges.getCharge())
+	UpdateShieldVisuals(localCharge + SharedCharges.getCharge())
 Endfunction
 
-; Uses any local charges first. If localCharges = 0,  uses shared charges instead
+; Uses any local charges first. If localCharge = 0,  uses shared charges instead
 function prioritizeLocal()
 	int total = removeLocalChargeUpTo(NumStages)
 	if total == 0
@@ -235,10 +234,10 @@ endFunction
 
 ; Add the given number of charges to the local charge. If too much, transfers the charges to the SharedCharge
 function AddCharge(int num = 1)
-	LocalCharges += num
-	if LocalCharges > MaxLocalCharge
-		SharedCharges.AddCharge(LocalCharges - MaxLocalCharge)
-		LocalCharges = MaxLocalCharge
+	LocalCharge += num
+	if LocalCharge > MaxLocalCharge
+		SharedCharges.AddCharge(LocalCharge - MaxLocalCharge)
+		LocalCharge = MaxLocalCharge
 	else
 		UpdateShieldVisuals()
 		if RefIsPlayer
@@ -251,12 +250,12 @@ EndFunction
 ; Removes and returns the number of requested charges from the local charge
 int function removeLocalChargeUpTo(int iRequest, bool bExact = False)
 	if iRequest > 0
-		if LocalCharges >= iRequest
-			LocalCharges -= iRequest
+		if LocalCharge >= iRequest
+			LocalCharge -= iRequest
 			return iRequest
 		elseif !bExact
-			iRequest = LocalCharges
-			LocalCharges = 0
+			iRequest = LocalCharge
+			LocalCharge = 0
 			return iRequest
 		else
 			return 0
@@ -270,7 +269,7 @@ EndFunction
 ; Updates the visuals on the shield according to the number of local charges
 Function UpdateShieldVisuals(int charges = 0)
 	if !charges
-		charges = LocalCharges
+		charges = LocalCharge
 	endif
 	if charges == 1
 		;debug.Notification("Shield at LEVEL 1")
@@ -287,4 +286,76 @@ Function UpdateShieldVisuals(int charges = 0)
 	else
 		selfRef.SetSubGraphFloatVariable("fToggleBlend", 0)
 	endif
+EndFunction
+
+;===============================================================================================================================
+;====================================			Menus			================================================
+;================================================================================================
+
+Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu)
+	bool abMenu = True
+	int aiButton
+	while abMenu
+		setButtonMain(Button)
+		aiButton = OptionsMenu.Show()
+		if aiButton == 0
+			return
+		elseif aiButton == 1	; Turn on Balanced (Magicka Based)
+			bBalanced = True
+		elseif aiButton == 2	; Turn off Balanced (Cooldown Based)
+			bBalanced = False
+		elseif aiButton == 3	; Charge Mode
+			ChargeMode = ListenerMenu.ChargeMode(ChargeMode, DEFChargeMode)
+		elseif aiButton == 4	; Hits per Charge
+			MenuChargeInterval()
+		elseif aiButton == 5	; Local Charge
+			MaxLocalCharge = ListenerMenu.ChargeStorage(MaxLocalCharge, DEFMaxLocalCharge)
+		endif
+	endwhile
+EndFunction
+
+Function setButtonMain(INEQ_MenuButtonConditional Button)
+	Button.clear()
+	if bBalanced
+		Button.set(2)
+	else
+		Button.set(1)
+		Button.set(4)
+		Button.set(5)
+	endif
+	Button.set(3)
+EndFunction
+;___________________________________________________________________________________________________________________________
+
+Function MenuChargeInterval()
+	bool abMenu = True
+	int aiButton
+	While abMenu
+		Debug.Notification("Hits until charge: " +ChargeInterval)
+		aiButton = ChargeIntervalMenu.Show()
+		if aiButton == 0
+			return
+		elseif aiButton == 1
+			ChargeInterval -= 50
+		elseif aiButton == 2
+			ChargeInterval -= 10
+		elseif aiButton == 3
+			ChargeInterval -= 5
+		elseif aiButton == 4
+			ChargeInterval -= 1
+		elseif aiButton == 5
+			ChargeInterval += 1
+		elseif aiButton == 6
+			ChargeInterval += 5
+		elseif aiButton == 7
+			ChargeInterval += 10
+		elseif aiButton == 8
+			ChargeInterval += 50
+		elseif aiButton == 9
+			ChargeInterval = DEFChargeInterval
+		endif
+		if ChargeInterval < 1
+			ChargeInterval = 1
+		endif
+	endwhile
 EndFunction

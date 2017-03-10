@@ -3,6 +3,8 @@ Scriptname INEQ_SharedCharges extends ReferenceAlias
 
 ;===========================================  Properties  ===========================================================================>
 
+;==========================================  Autoreadonly  ==========================================================================>
+
 float	Property	ChargeDistance	=	110.0	Autoreadonly	Hidden	; 2000
 float	Property	ChargeMagicka	=	150.0	Autoreadonly	Hidden	; 
 int		Property	PriorityMagicka	=	10		Autoreadonly	Hidden	; 100

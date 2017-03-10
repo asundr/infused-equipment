@@ -17,13 +17,11 @@ Sound Property RechargeSoundFX auto
 
 Quest Property SMART__EssentialPlayer auto
 
-ReferenceAlias	Property	MagickaSiphonAlias	Auto
-
 Message	Property	OptionsMenu			Auto
-Message Property	TimeOptions			Auto
+;Message Property	TimeOptions			Auto
 Message	Property	ThreshholdOptions	Auto
 Message	Property	RangeOptions		Auto
-Message	Property	PriorityOptions		Auto
+;Message	Property	PriorityOptions		Auto
 
 bool	Property	bBalanced	=	True	Auto	Hidden
 
@@ -32,6 +30,8 @@ int 	Property	Range 		= 	30		Auto	Hidden
 float	Property	RechargeMP				Auto	Hidden	;Derived from threshold and chargemult
 int		Property	RechargePR	=	90		Auto	Hidden
 int 	Property	ChargeTime	= 	120 	auto	Hidden
+
+;==========================================  Autoreadonly  ==========================================================================>
 
 int		Property	DEFThreshhold	=	5	Autoreadonly
 int		Property	DEFRange		=	30	Autoreadonly
@@ -44,8 +44,6 @@ String	Property	JumpDown	=	"JumpDown"	Autoreadonly	Hidden
 
 ;===========================================  Variables  ============================================================================>
 ObjectReference EquipRef
-
-INEQ_MagickaSiphon MagickaSiphon
 
 float previousHealth
 float maximumHealth
@@ -60,14 +58,13 @@ int InstanceID
 
 Event OnEffectStart (Actor akTarget, Actor akCaster)
 	GetMagickaCost()
-	MagickaSiphon = MagickaSiphonAlias as INEQ_MagickaSiphon
 	RegisterAbilityToAlias()
 EndEvent
 
 Event OnEffectFinish (Actor akTarget, Actor akCaster)
 	SMART__EssentialPlayer.stop()
 	RechargeImod.remove()
-	MagickaSiphon.UnregisterForEvent(self)
+	UnregisterForMagickaSiphonEvent()
 	UnregisterAbilityToAlias()
 EndEvent
 
@@ -79,7 +76,7 @@ Auto State Unequipped
 	
 	; Unregisters recahrge if armor is unequipped (not an overwrite)
 	Event OnBeginState()
-		MagickaSiphon.UnregisterForEvent(self)
+		UnregisterForMagickaSiphonEvent()
 	EndEvent
 	
 EndState
@@ -93,7 +90,8 @@ State Equipped
 		endif
 		SelfRef.placeatme(crAtronachFrostExplosion)
 		if bBalanced
-			MagickaSiphon.RegisterForEvent(self, RechargeMP, RechargePR)
+			RegisterForMagickaSiphonEvent(RechargeMP, RechargePR)
+			
 		else
 			RegisterForSingleUpdate(ChargeTime)
 		endif
@@ -295,7 +293,7 @@ EndFunction
 ;====================================			Menus			================================================
 ;================================================================================================
 
-Function AbilityMenu(INEQ_MenuButtonConditional Button = none)
+Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu)
 	bool abMenu = True
 	int aiButton
 	while abMenu
@@ -308,13 +306,13 @@ Function AbilityMenu(INEQ_MenuButtonConditional Button = none)
 		elseif aiButton == 2	; Turn off Balanced (Cooldown Based)
 			bBalanced = False
 		elseif aiButton == 3	; Set Cooldown length
-			MenuTime()
+			ChargeTime = ListenerMenu.ChargeTime(ChargeTime, DEFChargeTime)
 		elseif aiButton == 4	; Set Threshhold
 			MenuThreshhold()
 		elseif aiButton == 5	; Set range
 			MenuRange()
 		elseif aiButton == 6	; Set Priority
-			MenuPriority()
+			RechargePR = ListenerMenu.MagickaSiphonPriority(RechargePR, DEFRechargePR)
 		endif
 	endwhile
 EndFunction
@@ -332,47 +330,14 @@ Function SetButton(INEQ_MenuButtonConditional Button)
 	Button.set(4)
 	Button.set(5)
 EndFunction
-
-; Allows player to set time for cooldown
-Function MenuTime()
-	bool abMenu = True
-	int aiButton
-	while abMenu
-		Debug.Notification("Currrent cooldown timer: " +ChargeTime)
-		aiButton = TimeOptions.Show()
-		if aiButton == 0
-			return
-		elseif aiButton == 1
-			ChargeTime -= 1000
-		elseif aiButton == 2
-			ChargeTime -= 100
-		elseif aiButton == 3
-			ChargeTime -= 10
-		elseif aiButton == 4
-			ChargeTime -= 1
-		elseif aiButton == 5
-			ChargeTime += 1
-		elseif aiButton == 6
-			ChargeTime += 10
-		elseif aiButton == 7
-			ChargeTime += 100
-		elseif aiButton == 8
-			ChargeTime += 1000
-		elseif aiButton == 9
-			ChargeTime = DEFChargeTime
-		endif
-		if ChargeTime < 1
-			ChargeTime = 1
-		endif
-	endwhile
-endFunction
+;___________________________________________________________________________________________________________________________
 
 ; Allows player to set minimum damage threshhold for protection from ward
 Function MenuThreshhold()
 	bool abMenu = True
 	int aiButton
 	while abMenu
-		Debug.Notification("Currrent minimum damage threshhold: " +Threshhold)
+		Debug.Notification("Currrent minimum damage threshhold: " +Threshhold+ " damage")
 		aiButton = ThreshholdOptions.Show()
 		if aiButton == 0
 			GetMagickaCost()
@@ -402,13 +367,14 @@ Function MenuThreshhold()
 		endif
 	endwhile
 EndFunction
+;___________________________________________________________________________________________________________________________
 
 ; Allows player to set range of damage protection from ward
 Function MenuRange()
 	bool abMenu = True
 	int aiButton
 	while abMenu
-		Debug.Notification("Currrent protection range: " +Range)
+		Debug.Notification("Currrent protection range: " +Range+ " damage")
 		aiButton = RangeOptions.Show()
 		if aiButton == 0
 			GetMagickaCost()
@@ -435,37 +401,6 @@ Function MenuRange()
 		endif
 		if Range < 1
 			Range = 1
-		endif
-	endwhile
-EndFunction
-
-; Allows player to set priority for magicka siphon, migher means sooner
-Function MenuPriority()
-	bool abMenu = True
-	int aiButton
-	while abMenu
-		Debug.Notification("Currrent priority: " +RechargePR)
-		aiButton = PriorityOptions.Show()
-		if aiButton == 0
-			return
-		elseif aiButton == 1
-			RechargePR -= 50
-		elseif aiButton == 2
-			RechargePR -= 10
-		elseif aiButton == 3
-			RechargePR -= 5
-		elseif aiButton == 4
-			RechargePR -= 1
-		elseif aiButton == 5
-			RechargePR += 1
-		elseif aiButton == 6
-			RechargePR += 5
-		elseif aiButton == 7
-			RechargePR += 10
-		elseif aiButton == 8
-			RechargePR += 50
-		elseif aiButton == 9
-			RechargePR = DEFRechargePR
 		endif
 	endwhile
 EndFunction
