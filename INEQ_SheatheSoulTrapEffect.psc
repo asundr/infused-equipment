@@ -52,7 +52,7 @@ Event OnEffectFinish(Actor akTarget, Actor akCaster)
 				Target.AttachAshPile()			; AshPileObject
 				RegisterForSingleUpdate(3.0)
 			endif
-			TrapSoundFX.play(SelfRef)
+			;TrapSoundFX.play(SelfRef)
 			TargetVFX.Play(Target,2.7,SelfRef)
 			CasterVFX.Play(SelfRef,3.9,Target)
 		endif

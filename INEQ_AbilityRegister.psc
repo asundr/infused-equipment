@@ -41,17 +41,17 @@ Message		Property	FullResetWarn	Auto
 GlobalVariable	Property	CheatMode	Auto
 GlobalVariable	Property	MenuActive	Auto
 
-Quest	Property	MainQuest				Auto
-Quest	Property	INEQ__Recharging		Auto
-
 Formlist	Property	RechargeQuestlist	Auto
 Formlist	Property	AbilityToPlayerList	Auto
 
+Quest		Property	MainQuest			Auto
+
+Actor		Property	SelfRef				Auto
+
 ;==========================================  Autoreadonly  ==========================================================================>
-float	Property	InfuseTimout	=	5.0	Autoreadonly
+float	Property	InfuseTimout	=	5.0		Autoreadonly
 
 ;===========================================  Variables  ============================================================================>
-Actor SelfRef
 bool isBusy
 
 INEQ_MenuButtonConditional	Button
@@ -65,7 +65,7 @@ INEQ_RechargeBase[]			RechargeList
 ;================================================================================================
 
 Event OnInit()
-	SelfRef = self.GetReference() as Actor
+;	SelfRef = self.GetReference() as Actor
 	Button = MainQuest as INEQ_MenuButtonConditional
 	ListenerMenu = MainQuest as INEQ_ListenerMenu
 	Equipment = new INEQ_EquipmentScript[8]
@@ -92,31 +92,16 @@ Function maintenance()
 		i -= 1
 		Equipment[i].maintenance()
 	endwhile
-	
 	makeRechargeList()
 EndFunction
 
 ; Refresh Recharge alias list
 Function makeRechargeList()
-;	Alias ChargeAlias = INEQ__Recharging.getAlias(0)
-;	RechargeList[0] = (ChargeAlias as ReferenceAlias) as INEQ_RechargeBase
-;	Debug.Trace("Start Recharge list")
-;	int index = 2
-;	ChargeAlias = INEQ__Recharging.getAlias(index)
-;	while ChargeAlias
-;		Debug.Trace("Current Alias: " +((ChargeAlias as ReferenceAlias) as INEQ_RechargeBase).getName())
-;		RechargeList[index - 1] = (ChargeAlias as ReferenceAlias) as INEQ_RechargeBase
-;		index += 1
-;		ChargeAlias = INEQ__Recharging.getAlias(index)
-;	endwhile
-;	Debug.Trace("End Recharge list maker")
-	 
-	
 	INEQ_RechargeBase[] temp = new INEQ_RechargeBase[16]
-	int iList = RechargeQuestlist.GetSize()
+	int ListSize = RechargeQuestlist.GetSize()
+	int iList = 0
 	int count = 0
-	while iList > 0
-		iList-=1
+	while iList < ListSize
 		Quest  RechargeQuest = RechargeQuestlist.GetAt(iList) as Quest
 		if (RechargeQuest)
 			int iAlias = 0
@@ -130,19 +115,9 @@ Function makeRechargeList()
 				ref = RechargeQuest.GetAlias(iAlias) as ReferenceAlias
 			endwhile
 		endif
+		iList += 1
 	endwhile
 	RechargeList = temp
-	
-	String s = count + ": ["
-	int i = count	;RechargeList.length
-	While i > 0
-		i -= 1
-		if RechargeList[i]
-			s += RechargeList[i].GetName() + ", "
-		endif
-	endwhile
-	Debug.Trace(s + "]")
-	
 EndFunction
 
 ;===============================================================================================================================
@@ -280,10 +255,7 @@ State SelectAbilities
 
 	; Menu for (de)acitvating available abilities. Shows 4  options at a time, pressing next (button 9) recursively calls itself at a later index
 	Function AbilitySelectMenu(INEQ_AbilityAliasProperties[] AbilityArray, int startIndex = 0, int index = 0)
-
 		; Iterates ability list to find 4 unlocked abilities from a given index
-		
-		
 		int max = AbilityArray.length
 		INEQ_AbilityAliasProperties[] currAbilities = new INEQ_AbilityAliasProperties[4]
 		String messageText = ""
@@ -298,7 +270,6 @@ State SelectAbilities
 				messageText += (count)+ ") " +AbilityArray[index].getName()+ "\n"
 			endif
 			index += 1
-			
 			; b/c array size may be larger than number of filled elements
 			if AbilityArray[index] == none
 				index = max
@@ -370,11 +341,10 @@ State AbilityOptions
 	EndEvent
 	;___________________________________________________________________________________________________________________________
 
+	; Shows 8 options menus at a time, pressing next (button 9) recursively calls itself at a later index
 	Function AbilitySelectMenu(INEQ_AbilityAliasProperties[] AbilityArray, int startIndex = 0, int index = 0)
-		
 		;Iterate ability list to find 8 unlocked abilities from a given index
 		bool abMenu = True
-		
 		int max = AbilityArray.length
 		INEQ_AbilityAliasProperties[] currAbilities = new INEQ_AbilityAliasProperties[8]
 		String messageText = ""
@@ -389,7 +359,6 @@ State AbilityOptions
 				messageText += (count)+ ") " +AbilityArray[index].getName()+ "\n"
 			endif
 			index += 1
-			
 			; b/c array size may be larger than number of fileld elements
 			if AbilityArray[index] == none
 				index = max
@@ -429,8 +398,7 @@ State AbilityOptions
 				Button.Set(index + 1)
 			endif
 		endwhile
-		
-		if belowMax	;Enable next button if list isn't finished
+		if belowMax	; Next button
 			Button.Set(9)
 		endif
 	EndFunction
@@ -449,6 +417,7 @@ State ChargeOptions
 	EndEvent
 	;___________________________________________________________________________________________________________________________
 
+	; Shows 8 charge sources at a time, pressing next (button 9) recursively calls itself at a later index
 	Function ChargeSelectMenu(INEQ_RechargeBase[] RechargeArray, int startIndex = 0, int index = 0)
 	
 		int max = RechargeArray.length
@@ -507,8 +476,7 @@ State ChargeOptions
 				Button.Set(index + 1)
 			endif
 		endwhile
-		
-		if belowMax	;Enable next button if list isn't finished
+		if belowMax	; Enable next button
 			Button.Set(9)
 		endif
 	EndFunction
@@ -525,7 +493,6 @@ State OtherOptions
 		bool abMenu = True
 		MenuActive.SetValue(1)
 		int aiButton = 0
-
 		while abMenu && MenuActive.Value
 			aiButton = OtherOptions.Show()	; Main Menu
 			if aiButton == 0
@@ -549,10 +516,10 @@ State OtherOptions
 					Debug.Notification("Everything except for learned abilities has been reset")
 				endif
 			elseif aiButton == 5 
-				CheatMode.value = 1
+				CheatMode.SetValue(1)
 				Debug.Notification("Cheat mode activated")
 			elseif aiButton == 6 
-				CheatMode.value = 0
+				CheatMode.SetValue(0)
 				DeactivateAll(True)
 				Debug.Notification("Cheat mode deactivated")
 			endif
@@ -602,6 +569,7 @@ Function RestoreDefaultsAll()
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
+; Deactivates (and locks) abilities, then stops and starts every quest to reset
 function FullResetAll(bool bLock = False)
 	CheatMode.SetValue(0)
 	

@@ -1,6 +1,6 @@
 Scriptname INEQ_RechargeBase extends ReferenceAlias
 
-Actor	Property	SelfRef		Auto	Hidden
+Actor	Property	SelfRef		Auto
 Message	Property	MainMenu	Auto
 String	Property	Name		Auto
 
@@ -18,7 +18,7 @@ EndEvent
 ;___________________________________________________________________________________________________________________________
 
 Function Init()
-	SelfRef = GetReference() as Actor
+	;SelfRef = GetReference() as Actor
 EndFunction
 
 Function PlayerLoadGame()

@@ -14,7 +14,7 @@ int		Property	MaxLocalCharge	=	1		Auto	Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
 String	Property	PluginName		=	"InfusedEquipment.esp"	Autoreadonly
-int		Property	RechargeQuestID	=	0x001305b7				Autoreadonly
+int		Property	RechargeQuestID	=	0x001A9DE1				Autoreadonly
 ;===========================================  Variables  ============================================================================>
 
 ;===============================================================================================================================
@@ -39,12 +39,12 @@ Function EffectStart(Actor akTarget, Actor akCaster)
 		DistanceTravelledAlias = (Game.GetFormFromFile(RechargeQuestID, PluginName) as Quest).GetAlias(0) as ReferenceAlias
 	endif
 	
-	if !SharedChargesAlias
-		SharedChargesAlias = (Game.GetFormFromFile(RechargeQuestID, PluginName) as Quest).GetAlias(1) as ReferenceAlias
+	if !MagickaSiphonAlias
+		MagickaSiphonAlias = (Game.GetFormFromFile(RechargeQuestID, PluginName) as Quest).GetAlias(1) as ReferenceAlias
 	endif
 	
-	if !MagickaSiphonAlias
-		MagickaSiphonAlias = (Game.GetFormFromFile(RechargeQuestID, PluginName) as Quest).GetAlias(2) as ReferenceAlias
+	if !SharedChargesAlias
+		SharedChargesAlias = (Game.GetFormFromFile(RechargeQuestID, PluginName) as Quest).GetAlias(2) as ReferenceAlias
 	endif
 	RestoreDefaultFields()
 EndFunction
@@ -71,8 +71,8 @@ Function OnDistanceTravelledEvent()
 	Debug.Trace(self+ ": Could not find DistanceTravelledEvent override on Requester")
 EndFunction
 
-function RegisterForDistanceTravelledEvent(float akDistance)
-	if !bRegisteredDT && LocalCharge < MaxLocalCharge
+function RegisterForDistanceTravelledEvent(float akDistance, bool bForced = False)
+	if (!bRegisteredDT && LocalCharge < MaxLocalCharge) || (bRegisteredDT && bForced)
 		bRegisteredDT = (DistanceTravelledAlias as INEQ_DistanceTravelled).RegisterForEvent(self, akDistance)
 	endif
 Endfunction
@@ -94,8 +94,8 @@ Function OnMagickaSiphonEvent()
 	Debug.Trace(self+ ": Could not find OnMagickaSiphonEvent override on Requester")
 EndFunction
 
-function RegisterForMagickaSiphonEvent(float akMagicka, int akPriority)
-	if !bRegisteredMS && LocalCharge < MaxLocalCharge
+function RegisterForMagickaSiphonEvent(float akMagicka, int akPriority, bool bForced = False)
+	if (!bRegisteredMS && LocalCharge < MaxLocalCharge) || (bRegisteredMS && bForced)
 		bRegisteredMS = (MagickaSiphonAlias as INEQ_MagickaSiphon).RegisterForEvent(self, akMagicka, akPriority)
 	endif
 endfunction
@@ -127,4 +127,9 @@ EndFunction
 
 int Function RequestSharedChargeUpTo(int charge)
 	return (SharedChargesAlias as INEQ_SharedCharges).requestChargeUpTo(charge)
+EndFunction
+;___________________________________________________________________________________________________________________________
+
+; Used for plugin mod events
+Function OnCustomRechargeEvent(String asEventName)
 EndFunction

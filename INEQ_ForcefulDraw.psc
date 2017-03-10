@@ -136,25 +136,19 @@ EndFunction
 ;___________________________________________________________________________________________________________________________
 
 ; Determins how to recharge the ability based on the settings
-Function RegisterRecharge()
+Function RegisterRecharge(bool bForced = False)
 	if bUseCharges
 		if bUseTimer
 			RegisterForSingleUpdate(ChargeTime)
 		else
-			RegisterForDistanceTravelledEvent(ChargeDistance)
+			UnregisterForUpdate()
+			RegisterForDistanceTravelledEvent(ChargeDistance, bForced)
 		endif
 	else
 		RegisterForSingleUpdate(0.0)
 	endif
 EndFunction
-;___________________________________________________________________________________________________________________________
 
-; Used for updating recharge after charges in menu
-Function ReRegisterRecharge()
-	UnregisterForUpdate()
-	UnregisterForDistanceTravelledEvent()
-	RegisterRecharge()
-EndFunction
 ;===============================================================================================================================
 ;====================================			Menus			================================================
 ;================================================================================================
@@ -178,21 +172,19 @@ Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu Listen
 			bRecharged = True
 		elseif aiButton == 4	; Turn off charges
 			bUseCharges = False
-			ReRegisterRecharge()
+			UnregisterForDistanceTravelledEvent()
 		elseif aiButton == 5	; Turn on timer
 			bUseTimer = True
-			ReRegisterRecharge()
+			UnregisterForDistanceTravelledEvent()
 		elseif aiButton == 6	; Turn off timer (use distance)
 			bUseTimer = False
-			ReRegisterRecharge()
 		elseif aiButton == 7	; Set Distance
 			ChargeDistance = ListenerMenu.DistanceTravelledCost(ChargeDistance, DEFChargeDistance)
-			ReRegisterRecharge()
 		elseif aiButton == 8	; Set time
 			ChargeTime = ListenerMenu.ChargeTime(ChargeTime, DEFChargeTime)
-			ReRegisterRecharge()
 		endif
 	endwhile
+	RegisterRecharge(True)
 EndFunction
 
 Function setButtonMain(INEQ_MenuButtonConditional Button)

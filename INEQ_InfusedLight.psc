@@ -47,8 +47,8 @@ State Equipped
 		SelfRef.RemoveSpell(LightSpell)
 	EndEvent
 
-	Event OnAnimationEvent(ObjectReference akSource, string EventName)
-		if SelfRef.GetLightLevel() < LightThreshold
+	Event OnAnimationEvent(ObjectReference akSource, String EventName)
+		if SelfRef.GetLightLevel() < LightThreshold && !SelfRef.isSneaking()
 			GoToState("Active")
 		endif
 	EndEvent
@@ -67,7 +67,7 @@ State Active
 		SelfRef.addspell(LightSpell, false)
 	EndEvent
 	
-	Event OnAnimationEvent(ObjectReference akSource, string EventName)
+	Event OnAnimationEvent(ObjectReference akSource, String EventName)
 		GoToState("Equipped")
 	EndEvent
 

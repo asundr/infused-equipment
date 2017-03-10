@@ -91,14 +91,10 @@ State Equipped
 	Event OnBeginState()
 		if(instanceID)
 			Sound.StopInstance(InstanceID)
+			InstanceID = 0
 		endif
 		SelfRef.placeatme(crAtronachFrostExplosion)
-		if bBalanced
-			RegisterForMagickaSiphonEvent(RechargeMP, RechargePR)
-			
-		else
-			RegisterForSingleUpdate(ChargeTime)
-		endif
+		RegisterRecharge()
 	EndEvent
 	
 	Function OnMagickaSiphonEvent()
@@ -292,6 +288,18 @@ Float Function NaturalLog(float x, float precision = 0.01, float divisor = 1.0)
 	endWhile	
 	return 2.0 * result + y
 EndFunction
+;___________________________________________________________________________________________________________________________
+
+; 
+Function RegisterRecharge(bool bForced = False)
+	if GetState() == "Equipped"
+		if bBalanced
+			RegisterForMagickaSiphonEvent(RechargeMP, RechargePR, bForced)
+		else
+			RegisterForSingleUpdate(ChargeTime)
+		endif
+	endif
+EndFunction
 
 ;===============================================================================================================================
 ;====================================			Menus			================================================
@@ -321,6 +329,7 @@ Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu Listen
 			RechargePR = ListenerMenu.MagickaSiphonPriority(RechargePR, DEFRechargePR)
 		endif
 	endwhile
+	RegisterRecharge(True)
 EndFunction
 
 ; Updates the Button to show the correct menu options
