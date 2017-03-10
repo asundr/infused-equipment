@@ -26,25 +26,33 @@ bool bEnableOffState 	= True		; if enabled, allows the script to stop tracking d
 bool bIncludeFastTravel	= True		; if enabled, includes fast travel distance
 
 INEQ_EventListenerBase[] registeredAb
-INEQ_EventListenerBAse[] bufferAb
 float[] registeredDist
+
+INEQ_EventListenerBase[] bufferAb
 float[] bufferDist
+
+INEQ_EventListenerBase[] UnregisterAB
 
 int numRequests = 0
 int numBuffered = 0
+int numUnregistered = 0
 
 ;===============================================================================================================================
 ;====================================	    Start/Finish		================================================
 ;================================================================================================
 
 Event OnInit()
-	registeredAb = new INEQ_EventListenerBase[16]		; NOTE: should probably increase or provide a function to incrase array size if necesary
-	bufferAb = new INEQ_EventListenerBase[16]
-	registeredDist = new float[16]
-	bufferDist = new float[16]
-	
 	selfRef = GetReference() as Actor
 	TotalDistance.SetValue(0)
+	
+	registeredAb = new INEQ_EventListenerBase[16]		; NOTE: should probably increase or provide a function to incrase array size if necesary
+	registeredDist = new float[16]
+	
+	bufferAb = new INEQ_EventListenerBase[16]
+	bufferDist = new float[16]
+	
+	UnregisterAB = new INEQ_EventListenerBase[16]
+		
 	GoToState("Off")
 EndEvent
 
@@ -103,11 +111,17 @@ EndState
 
 ; Prevents registrations from changing the array while sending events. Instead, stores registrations 
 ; in a temporary buffer array then transfers them when the main array is no longer sending events
-State SendingEvents
+State RegisterBusy
+
+	; TESTING
+	Event OnUpdate()
+		RegisterForSingleUpdate(0.1)
+	EndEvent
 	
 	;Stores requests in a temporary array
 	bool function RegisterForEvent(INEQ_EventListenerBase akAsker, float akDistance)
 		if numBuffered == bufferAb.length || numBuffered + numRequests >= registeredAb.length
+			Debug.Trace(self+ ": Number of requests exceeded buffer or main array on adding " +akAsker)
 			return false
 		else
 			bufferAb[numBuffered] = akAsker
@@ -117,21 +131,84 @@ State SendingEvents
 		endif
 	endfunction
 	
+	
+	; Stores unregistration requests in an array
+	Function UnregisterForEvent(INEQ_EventListenerBase akAsker)
+		int index = BufferAB.find(akAsker)
+		if index != -1
+			BufferAB[index] = None
+			BufferDist[index] = 0.0
+			numUnregistered += 1
+		endif
+		index = registeredAB.find(akAsker)
+		if index != -1
+			UnregisterAB[numUnregistered] = akAsker
+			numUnregistered += 1
+		endif
+	EndFunction
+	
+	
 	; transfers elements from temporary arrays to the main array and then sorts it
 	Event OnEndState()
-		int i = 0
-		while i < numBuffered && numRequests < registeredAb.length
-			registeredAb[numRequests] = bufferAb[i]
-			bufferAb[i] = none
-			registeredDist[numRequests] = bufferDist[i]
-			bufferDist[i] = 0.0
-			numRequests += 1
-			i += 1
-		endWhile
-		numbuffered = 0
-		sortDescending()
-	EndEvent
 	
+;		ShiftElementsDown(BufferAB, BufferDist)
+;		int i = 0
+;		while i < numBuffered ;&& numRequests < registeredAb.length
+;			registeredAb[numRequests] = bufferAb[i]
+;			registeredDist[numRequests] = bufferDist[i]
+;			bufferAb[i] = none
+;			bufferDist[i] = 0.0
+;			numRequests += 1
+;			i += 1
+;		endWhile
+;		numbuffered = 0
+;		sortDescending()
+
+		; Adds all elements registered while sending events (see INEQ_MagickaSiphon for detials)
+		if numBuffered
+			int i = 0
+			int max = iMin(numBuffered + numUnregistered, RegisteredAB.length)
+			while i < max
+				if BufferAB[i] != None
+					int index = RegisteredAB.find(BufferAB[i])
+					if index == -1
+						index = numRequests
+						numRequests += 1
+					endif
+					RegisteredAB[index] = BufferAB[i]
+					RegisteredDist[index] = BufferDist[i]
+					BufferAB[i] = None
+					BufferDist[i] = 0.0
+				endif
+				i += 1
+			endwhile
+		endif
+		
+		; Removes all unregistered after the register array is no longer busy
+		if numUnregistered
+			int i = UnregisterAB.length
+			while i > 0
+				i -= 1
+				if UnregisterAB[i] != None
+					int index = RegisteredAB.find(UnregisterAB[i])
+					if index != -1
+						RegisteredAB[index] = None
+						RegisteredDist[index] = 0.0
+					endif
+					unregisterAB[i] = None
+				endif
+			endwhile	
+			ShiftElementsDown(RegisteredAB, RegisteredDist)
+		endif
+		
+		if numbuffered || numUnregistered
+			numUnregistered = 0
+			numBuffered = 0
+			sortDescending()
+		endif
+	
+	EndEvent
+
 EndState
 
 ;___________________________________________________________________________________________________________________________
@@ -158,12 +235,12 @@ EndFunction
 ; Assumes array sorted from farthest to closest. Sends an event to the closest index until the next one is too far away
 function sendEvent()
 	String previous = GetState()
-	GoToState("SendingEvents")
+	GoToState("RegisterBusy")
 	while numRequests && registeredDist[numRequests - 1] && registeredDist[numRequests - 1] < TotalDistance.Value
-		registeredAb[numRequests - 1].OnDistanceTravelledEvent()
-		registeredAb[numRequests - 1] = none
-		registeredDist[numRequests - 1] = 0.0
 		numRequests -= 1
+		registeredAb[numRequests].OnDistanceTravelledEvent()
+		registeredAb[numRequests] = none
+		registeredDist[numRequests] = 0.0
 	endwhile
 	GoToState(previous)
 	if bEnableOffState && numRequests == 0		; should handle this in the on state only
@@ -176,16 +253,18 @@ endfunction
 function UnregisterForEvent(INEQ_EventListenerBase akAsker)
 	int index = registeredAb.find(akAsker)
 	if index != -1
+		String previous = GetState()
+		GoToState("RegisterBusy")
 		index += 1
 		while index < numRequests
 			registeredAb[index - 1] = registeredAb[index]
 			registeredDist[index - 1] = registeredDist[index]
+			index += 1
 		endwhile
-		if index < registeredAb.length
-			registeredAb[index] = None
-			registeredDist[index] = 0.0
-		endif
+		registeredAb[index - 1] = None
+		registeredDist[index - 1] = 0.0
 		numRequests -= 1
+		GoToState(previous)
 	endif
 EndFunction
 ;___________________________________________________________________________________________________________________________
@@ -195,6 +274,7 @@ bool function RegisterForEvent(INEQ_EventListenerBase akAsker, float akDistance)
 	int index = registeredAb.find(akAsker)
 	if  index < 0
 		if numRequests == registeredAb.length
+			Debug.Trace(self+ ": Number of requests exceeded buffer or main array on adding " +akAsker)
 			return false
 		else
 			registeredAb[numRequests] = akAsker
@@ -211,6 +291,50 @@ bool function RegisterForEvent(INEQ_EventListenerBase akAsker, float akDistance)
 	sortDescending()	;sort array from farthest to closest so that the send event can poll the minimum number of indicies
 	return true
 endFunction
+;___________________________________________________________________________________________________________________________
+
+; Takes an array of INEQ_EvntListenerBase and shifts all elements towards 0
+function ShiftElementsDown(INEQ_EventListenerBase[] akListener, float[] akDistance = None)
+	int firstNone = getFirstNone(akListener)
+	int lastElement = getLastElement(akListener)
+	while firstNone != -1 && lastElement != -1 && firstNone < lastElement
+		akListener[firstNone] = akListener[lastElement]
+		akListener[lastElement] = None
+		if akDistance
+			akDistance[firstNone] = akDistance[lastElement]
+			akDistance[lastElement] = 0.0
+		endif
+		firstNone = getFirstNone(akListener, firstNone)
+		lastElement = getLastElement(akListener, lastElement)
+	endwhile
+endfunction
+;___________________________________________________________________________________________________________________________
+
+; Returns the last None element of the array from "ending" or -1 if not found
+int function getLastElement(INEQ_EventListenerBase[] arr, int ending = -1)
+	if ending == -1
+		ending = arr.length
+	endif
+	while ending > 0
+		ending -= 1
+		if arr[ending] != none
+			return ending
+		endif
+	endwhile
+	return -1
+endfunction
+;___________________________________________________________________________________________________________________________
+
+; Returns the last non-None element of the array from "starting" or -1 if not found
+int function getFirstNone(INEQ_EventListenerBase[] arr, int starting = 0)
+	while starting < arr.length
+		if arr[starting] == none
+			return starting
+		endif
+		starting += 1
+	endwhile
+	return -1
+endfunction
 ;___________________________________________________________________________________________________________________________
 
 ; replace with better sorting algorithm later if many items are registered at any one time
@@ -242,6 +366,16 @@ function swap(int a, int b)
 	registeredDist[a] = registeredDist[b]
 	registeredDist[b] = tempDist
 endfunction
+;___________________________________________________________________________________________________________________________
+
+; Returns the smaller of two integers
+int function iMin(int a, int b)
+	if a < b
+		return a
+	else
+		return b
+	endif
+endFunction
 ;___________________________________________________________________________________________________________________________
 
 ;for testing

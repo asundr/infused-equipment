@@ -7,6 +7,7 @@ Spell Property DLC2BloodskalBladeSpellVert auto
 
 ReferenceAlias	Property	SharedChargesAlias	Auto
 ReferenceAlias	Property	DistanceTravelledAlias	Auto
+ReferenceAlias	Property	MagickaSiphonAlias	Auto
 
 String  Property  WeaponSwing  = 	"weaponSwing"  	Autoreadonly			; weapon attack
 
@@ -27,16 +28,19 @@ Int		Property	LocalCharge		Auto	Hidden
 Int 	Property	MaxLocalCharge	=	4	Autoreadonly	Hidden
 Int		Property	ChargeCost		=	2	Autoreadonly	Hidden
 
-float	Property	ChargeDistance	=	1000.0	Autoreadonly	Hidden		; should be high relative to ChargeMagickaSiphon
-float	Property	ChargeMagickaSiphon = 100.0	Autoreadonly	Hidden
+float	Property	ChargeDistance	=	100.0	Autoreadonly	Hidden		; 1000.0, should be high relative to ChargeMagickaSiphon
+float	Property	ChargeMagickaMP = 50.0		Autoreadonly	Hidden
+int		Property	ChargeMagickaPR = 50		Auto			Hidden
 
 ;===========================================  Variables  ============================================================================>
 ObjectReference EquipRef
 
 INEQ_SharedCharges SharedCharges
 INEQ_DistanceTravelled DistanceTravelled
+INEQ_MagickaSiphon MagickaSiphon
 int chargePriority = 0	; 0=shared charges, 1=prioritize local, 2=only use local charges
-bool isCharging
+bool bRegisteredDT = False
+bool bRegisteredMS = False
 bool bBalancedMode = True
 
 ;===============================================================================================================================
@@ -44,16 +48,15 @@ bool bBalancedMode = True
 ;================================================================================================
 
 Event OnEffectStart(Actor akTarget, Actor akCaster)
-	LocalCharge = 0
 	SharedCharges = SharedChargesAlias as INEQ_SharedCharges
 	DistanceTravelled = DistanceTravelledAlias as INEQ_DistanceTravelled
-	if DistanceTravelled
-		RegisterForDistanceTravelledEvent()
-	endif
+	MagickaSiphon = MagickaSiphonAlias as INEQ_MagickaSiphon
+	LocalCharge = 0
 EndEvent
 
 Event OnEffectFinish (Actor akTarget, Actor akCaster)
 	DistanceTravelled.UnregisterForEvent(Self)
+	MagickaSiphon.UnregisterForEvent(self)
 	unregisterForAnimationEvent(SelfRef, PWStanding2H)
 	unregisterForAnimationEvent(SelfRef, PWRight2H)
 	unregisterForAnimationEvent(SelfRef, PWLeft2H)
@@ -63,11 +66,28 @@ Event OnEffectFinish (Actor akTarget, Actor akCaster)
 EndEvent
 
 Event OnPlayerLoad()
-	RegisterForDistanceTravelledEvent()
-;	if !isCharging && LocalCharge < MaxLocalCharge
-;		isCharging = DistanceTravelled.RegisterForEvent(self, ChargeDistance)
-;	endif
+	Maintenance()
 EndEvent
+
+Function Maintenance()
+	if DistanceTravelled
+		RegisterForDistanceTravelledEvent(ChargeDistance)
+	else
+		DistanceTravelled = DistanceTravelledAlias as INEQ_DistanceTravelled
+		if DistanceTravelled
+			RegisterForDistanceTravelledEvent(ChargeDistance)
+		endif
+	endif
+	
+	if MagickaSiphon
+		RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR)
+	else
+		MagickaSiphon = MagickaSiphonAlias as INEQ_MagickaSiphon
+		if MagickaSiphon
+			RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR)
+		endif
+	endif
+EndFunction
 
 ;===============================================================================================================================
 ;====================================			States			================================================
@@ -84,6 +104,7 @@ State Equipped
 		elseif itemType > 0 && itemType < 5
 			GoToState("Equipped1H")
 		endif
+		Maintenance()
 	EndEvent
 
 EndState
@@ -211,47 +232,65 @@ int function removeLocalCharge(int iRequest)
 	if iRequest > 0 && LocalCharge >= iRequest
 		LocalCharge -= iRequest
 		Debug.Notification("Bloodskal Charges: " +LocalCharge)
-		RegisterForDistanceTravelledEvent()
-;		if !isCharging
-;			isCharging = DistanceTravelled.RegisterForEvent(self, ChargeDistance)
-;		endif
+		RegisterForDistanceTravelledEvent(ChargeDistance)
+		RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR)
 		return iRequest
 	else
 		return 0
 	endif
 EndFunction
+
+function addLocalCharge(int charge = 1)
+	if LocalCharge != MaxLocalCharge
+		LocalCharge += charge
+		if LocalCharge < MaxLocalCharge
+			Debug.Notification("Bloodskal Charges: " +LocalCharge)
+			RegisterForDistanceTravelledEvent(ChargeDistance)
+			RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR)
+			return
+		else
+			LocalCharge = MaxLocalCharge
+			Debug.Notification("Bloodskal Charges: " +LocalCharge)
+		endif
+	endif
+	UnregisterForDistanceTravelledEvent()
+	UnregisterForMagickaSiphonEvent()
+endFunction
 ;___________________________________________________________________________________________________________________________
 
 function OnDistanceTravelledEvent()
-	if LocalCharge < MaxLocalCharge
-		isCharging = False
-		LocalCharge += 1
-		Debug.Notification("Bloodskal Charges: " +LocalCharge)
-		RegisterForDistanceTravelledEvent()
-;		if LocalCharge < MaxLocalCharge
-;			isCharging = DistanceTravelled.RegisterForEvent(self, ChargeDistance)
-;			if DistanceTravelled.RegisterForEvent(self, ChargeDistance)
-;				isCharging = True
-;			else
-;				count = 0
-;				RegisterForSingleUpdate(0.2)
-;			endif
-;		endif
+	bRegisteredDT = False
+	addLocalCharge()
+endfunction
+
+function RegisterForDistanceTravelledEvent(float akDistance)
+	if !bRegisteredDT && LocalCharge < MaxLocalCharge
+		bRegisteredDT = DistanceTravelled.RegisterForEvent(self, akDistance)
+	endif
+Endfunction
+
+Function UnregisterForDistanceTravelledEvent()
+	if bRegisteredDT
+		bRegisteredDT	= False
+		bRegisteredDT = DistanceTravelled.UnregisterForEvent(self)
+	endif
+EndFunction
+;___________________________________________________________________________________________________________________________
+
+function OnMagickaSiphonEvent()
+	bRegisteredMS = False
+	addLocalCharge()
+EndFunction
+
+function RegisterForMagickaSiphonEvent(float akMagicka, int akPriority)
+	if !bRegisteredMS && LocalCharge < MaxLocalCharge
+		bRegisteredMS = MagickaSiphon.RegisterForEvent(self, akMagicka, akPriority)
 	endif
 endfunction
 
-;int count
-;Event OnUpdate()
-;	if 	 DistanceTravelled.RegisterForEvent(self, ChargeDistance)
-;		isCharging = True
-;	elseif	count < 10
-;		count += 1
-;		RegisterForSingleUpdate(0.2)
-;	endif
-;EndEvent
-
-function RegisterForDistanceTravelledEvent()
-	if !isCharging && LocalCharge < MaxLocalCharge
-		isCharging = DistanceTravelled.RegisterForEvent(self, ChargeDistance)
+Function UnregisterForMagickaSiphonEvent()
+	if bRegisteredMS
+		bRegisteredMS = False
+		MagickaSiphon.UnregisterForEvent(self)
 	endif
-Endfunction
+endfunction

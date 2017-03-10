@@ -4,74 +4,85 @@ Scriptname INEQ_SharedChargesListener extends INEQ_EventListenerBase
 ;===========================================  Properties  ===========================================================================>
 ReferenceAlias	Property	SharedChargesAlias		Auto
 ReferenceAlias	Property	DistanceTravelledAlias	Auto
+ReferenceAlias	Property	MagickaSiphonAlias		Auto
 
-Bool Property bDistanceChargingActive Auto Hidden
+Bool	Property	bRegisteredDT	=	False	Auto	Hidden
+Bool	Property	bRegisteredMS	=	False	Auto	Hidden
 
 ;===========================================  Variables  ============================================================================>
 INEQ_SharedCharges 		SharedCharges
 INEQ_DistanceTravelled	DistanceTravelled
-
-;int count
-
-;float distance
+INEQ_MagickaSiphon		MagickaSiphon
 
 ;===============================================================================================================================
 ;====================================	    Start/Finish		================================================
 ;================================================================================================
 
 Event OnEffectStart(Actor akTarget, Actor akCaster)
-	bDistanceChargingActive = False
 	SharedCharges = SharedChargesAlias as INEQ_SharedCharges
 	DistanceTravelled = DistanceTravelledAlias as INEQ_DistanceTravelled
+	MagickaSiphon = MagickaSiphonAlias as INEQ_MagickaSiphon
 	SharedCharges.registerListener(self)
 EndEvent
 
 Event OnEffectFinish(Actor akTarget, Actor akCaster)
 	DistanceTravelled.UnregisterForEvent(self)
+	MagickaSiphon.UnregisterForEvent(self)
 EndEvent
 
 ;===============================================================================================================================
 ;====================================			Functions			================================================
 ;================================================================================================
 
-; When called by SharedCharges, attempts to register a DistanceTravelledEvent
+; When called by SharedCharges, attempts to register a DistanceTravelled Event
 Function RegisterForDistanceTravelledEvent(float akDistance)
-;	distance = akDistance
-	DistanceTravelled.RegisterForEvent(self, akDistance)
-;	if DistanceTravelled.RegisterForEvent(self, distance)
-;		bDistanceChargingActive = True
-;	else
-;		GoToState("WaitingForDT")
-;	endif
+	if !bRegisteredDT
+		bRegisteredDT = DistanceTravelled.RegisterForEvent(self, akDistance)
+	endif
 EndFunction
 
-; Temporary state to ensure registration if DistanceTravelled is currently busy sending events
-;State WaitingForDT
-;	
-;	Event OnBeginState()
-;		count = 0
-;		RegisterForSingleUpdate(0.2)
-;	EndEvent
-;	
-;	Event OnUpdate()
-;		if 	DistanceTravelled.RegisterForEvent(self, distance)
-;			GoToState("")
-;		else
-;			if count < 10
-;				count += 1
-;				RegisterForSingleUpdate(0.2)
-;			else
-;				bDistanceChargingActive = True
-;				GoToState("")
-;			endif
-;		endif
-;	EndEvent
-;
-;EndState
+; When called by SharedCharges, unregisters for DistanceTravelled Event
+Function UnregisterForDistanceTravelledEvent()
+	if bRegisteredDT
+		bRegisteredDT = False
+		DistanceTravelled.UnregisterForEvent(self)
+	endif
+EndFunction
+
+; Forwards the DistanceTravelled Event to SharedCharges
+Function OnDistanceTravelledEvent()
+	bRegisteredDT = False
+	SharedCharges.OnDistanceTravelledEvent()
+EndFunction
+
+; Returns whether the 
+bool Function isRegisteredDistanceTravelled()
+	return bRegisteredDT
+EndFunction
+
 ;___________________________________________________________________________________________________________________________
 
-; Forwards the distance travelled event to SharedCharges
-Function OnDistanceTravelledEvent()
-	bDistanceChargingActive = False
-	SharedCharges.OnDistanceTravelledEvent()
+; When called by SharedCharges, attempts to register a MagickaSiphon Event
+Function RegisterForMagickaSiphonEvent(float akMagicka, int akPriority)
+	if !bRegisteredMS
+		bRegisteredMS = MagickaSiphon.RegisterForEvent(self, akMagicka, akPriority)
+	endif
+EndFunction
+
+; When called by SharedCharges, unregisters for DistanceTravelled Event
+Function UnregisterForMagickaSiphonEvent()
+	if bRegisteredMS
+		bRegisteredMS = False
+		MagickaSiphon.UnregisterForEvent(self)
+	endif
+EndFunction
+
+; Forwards the MagickaSiphon Event to SharedCharges
+Function OnMagickaSiphonEvent()
+	bRegisteredMS = False
+	SharedCharges.OnMagickaSiphonEvent()
+EndFunction
+
+bool Function isRegisteredMagickaSiphon()
+	return bRegisteredMS
 EndFunction
