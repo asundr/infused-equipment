@@ -146,20 +146,26 @@ ImageSpaceModifier Function GetSunGazeImod(bool activate = True)
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
-Function RegisterRecharge()
-	if bUseTimer
-		RegisterForSingleUpdate(ChargeTime)
-	else
-		RegisterForDistanceTravelledEvent(ChargeDistance)
+Function RegisterRecharge(bool bForced = False)
+	if bUseCharges
+		if bUseTimer
+			UnregisterForDistanceTravelledEvent()
+			RegisterForSingleUpdate(ChargeTime)
+		else
+			UnregisterForupdate()
+			RegisterForDistanceTravelledEvent(ChargeDistance, bForced)
+		endif
+;	else
+;		RegisterForSingleUpdate(0)
 	endif
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
-Function ReRegisterRecharge()
-	UnregisterForUpdate()
-	UnregisterForDistanceTravelledEvent()
-	RegisterRecharge()
-EndFunction
+;Function ReRegisterRecharge()
+;	UnregisterForUpdate()
+;	UnregisterForDistanceTravelledEvent()
+;	RegisterRecharge()
+;EndFunction
 ;___________________________________________________________________________________________________________________________
 
 ; Recharges Auriel's sunburst after a predefined Distance travelled
@@ -209,21 +215,22 @@ Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu Listen
 			bRecharged = True
 		elseif aiButton == 4	; Turn off charges
 			bUseCharges = False
-			ReRegisterRecharge()
+			;ReRegisterRecharge()
 		elseif aiButton == 5	; Turn on timer
 			bUseTimer = True
-			ReRegisterRecharge()
+			;ReRegisterRecharge()
 		elseif aiButton == 6	; Turn off timer (use distance)
 			bUseTimer = False
-			ReRegisterRecharge()
+			;ReRegisterRecharge()
 		elseif aiButton == 7	; Set Distance
 			ChargeDistance = ListenerMenu.DistanceTravelledCost(ChargeDistance, DEFChargeDistance)
-			ReRegisterRecharge()
+			;ReRegisterRecharge()
 		elseif aiButton == 8	; Set time
 			ChargeTime = ListenerMenu.ChargeTime(ChargeTime, DEFChargeTime)
-			ReRegisterRecharge()
+			;ReRegisterRecharge()
 		endif
 	endwhile
+	RegisterRecharge(True)
 EndFunction
 
 Function setButtonMain(INEQ_MenuButtonConditional Button)

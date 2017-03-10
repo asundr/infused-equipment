@@ -9,7 +9,6 @@ INEQ_AbilityAliasProperties[]	Property	AbilityAliasArray	Auto
 
 ;===========================================  Variables  ============================================================================>
 
-
 ;===============================================================================================================================
 ;====================================	    Maintenance			================================================
 ;================================================================================================
@@ -40,10 +39,10 @@ endfunction
 ;Refereshes the ability alias formlist		; Change Alias while loop when SKSE SE released
 function makeAbilityFormlist()
 	INEQ_AbilityAliasProperties[] temp = new INEQ_AbilityAliasProperties[32]
-	int iList = AbilityQuestList.GetSize()
+	int ListSize = AbilityQuestList.GetSize()
+	int iList 
 	int count = 0
-	while iList > 0
-		iList-=1
+	while iList < ListSize
 		Quest  AbilityQuest = AbilityQuestList.GetAt(iList) as Quest
 		if (AbilityQuest)
 			int iAlias = 0
@@ -57,6 +56,7 @@ function makeAbilityFormlist()
 				abRef = AbilityQuest.GetAlias(iAlias) as ReferenceAlias
 			endwhile
 		endif
+		iList += 1
 	endwhile
 	AbilityAliasArray = temp
 EndFunction
@@ -101,6 +101,7 @@ Function AttemptDeactivate(bool cheated = False)
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
+; Activates an ability and updates it to the current reference
 Function AttemptActivate()
 	int index = AbilityAliasArray.length
 	while index > 0
@@ -113,6 +114,7 @@ Function AttemptActivate()
 endfunction
 ;___________________________________________________________________________________________________________________________
 
+; If an ability has modifiable properties, returns them to default values
 Function RestoreDefaultFields()
 	int index = AbilityAliasArray.length
 	while index > 0

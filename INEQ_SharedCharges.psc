@@ -94,9 +94,9 @@ EndFunction
 ;___________________________________________________________________________________________________________________________
 
 ; Register for any recharge sources
-Function RegisterForRecharge()
-	RegisterForDistanceTravelledEvent()
-	RegisterForMagickaSiphonEvent()
+Function RegisterForRecharge(bool bForced = False)
+	RegisterForDistanceTravelledEvent(bForced)
+	RegisterForMagickaSiphonEvent(bForced)
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
@@ -108,9 +108,11 @@ EndFunction
 ;___________________________________________________________________________________________________________________________
 
 ; Registers for DistanceTravelledEvent if not at maximum charges and not currently registered
-function RegisterForDistanceTravelledEvent()
-	if numCharges < maxCharges && EventListener ;&& !EventListener.isRegisteredDistanceTravelled()
-		EventListener.RegisterForDistanceTravelledEvent(ChargeDistance)
+function RegisterForDistanceTravelledEvent(bool bForced)
+	if EventListener
+		if numCharges < maxCharges
+			EventListener.RegisterForDistanceTravelledEvent(ChargeDistance, bForced)
+		endif
 	endif
 endFunction
 
@@ -121,9 +123,11 @@ EndFunction
 ;___________________________________________________________________________________________________________________________
 
 ; Registers for MagickaSiphonEvent if not at maximum charges and not currently registered
-Function RegisterForMagickaSiphonEvent()
-	if numCharges < maxCharges && EventListener ;&& !EventListener.isRegisteredMagickaSiphon()
-		EventListener.RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR)
+Function RegisterForMagickaSiphonEvent(bool bForced)
+	if EventListener
+		if numCharges < maxCharges
+			EventListener.RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR, bForced)
+		endif
 	endif
 EndFunction
 
@@ -152,7 +156,7 @@ Function ChargeMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu Listene
 			bBalanced = False
 		elseif aiButton == 3		; Charge Storage
 			MaxCharges = ListenerMenu.ChargeStorage(MaxCharges, DEFMaxCharges)
-			RegisterForRecharge()
+			;RegisterForRecharge()
 		elseif aiButton == 4		; Distance Cost
 			ChargeDistance = ListenerMenu.DistanceTravelledCost(ChargeDistance, DEFChargeDistance)
 		elseif aiButton == 5		; Magicka Cost
@@ -161,6 +165,7 @@ Function ChargeMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu Listene
 			ChargeMagickaPR = ListenerMenu.MagickaSiphonPriority(ChargeMagickaPR, DEFChargeMagickaPR)
 		endif
 	endwhile
+	RegisterForRecharge(True)
 EndFunction
 
 Function SetButtonMain(INEQ_MenuButtonConditional Button)

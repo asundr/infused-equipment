@@ -12,14 +12,13 @@ float Property	DrainPercentage	=	1.0	Auto	Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
 float	Property	SecondsInDay	=	86400.0	Autoreadonly
-
 float	Property	CombatCheck		=	10.0	Autoreadonly		; checks at most CombatCheck seconds after last update
 float	Property	MPResetDelay	=	1.0		Autoreadonly		; Limits rapid checking when mp is close to full
 
-bool	Property	bDebugTrace		=	False	Autoreadonly
-bool	Property	bDebugMessage	=	False	Autoreadonly
-
 float	Property	DEFDrainPercentage	=	1.0	Autoreadonly
+
+bool	Property	bDebugTrace		=	True	Autoreadonly
+bool	Property	bDebugMessage	=	True	Autoreadonly
 
 String	Property	CastStop	=	"CastStop"	Autoreadonly
 
@@ -120,7 +119,7 @@ Auto State Off
 	Event OnBeginState()
 		UnregisterForUpdate()
 		UnregisterForAnimationEvent(SelfRef, CastStop)
-		DEBUGTEXT("\t\t{{{Entering Off}}}")
+	;DEBUGTEXT("\t\t{{{Entering Off}}}")
 	EndEvent 
 	
 	; Empty overrides for listeners
@@ -155,7 +154,7 @@ Auto State Off
 	
 	Event OnEndState()
 		RegisterForAnimationEvent(SelfRef, CastStop)
-		DEBUGTEXT("\t\t{{{Leaving Off}}}")
+	;DEBUGTEXT("\t\t{{{Leaving Off}}}")
 	EndEvent
 	
 EndState
@@ -170,12 +169,12 @@ State Active
 	EndEvent
 
 	Event OnUpdate()
-	DEBUGTEXT("OnUpdate Start")
+	;DEBUGTEXT("OnUpdate Start")
 		if bSiphonBelowMax
 			sendEvent(calculateModifier())
 		endif
 		RegisterForMPUpdate()
-	DEBUGTEXT("OnUpdate End")
+	;DEBUGTEXT("OnUpdate End")
 	EndEvent
 
 	; Calculates what the drian should be and and modifies the Actor's magickaratemult to that value
@@ -211,7 +210,7 @@ State Active
 	
 	; Calculates the MP siphoned since last update using amount drained (convert to use parameter)
 	float function calculateModifier()
-	DEBUGTEXT("calculateModifier start", 0, False, False)
+	;DEBUGTEXT("calculateModifier start", 0, False, False)
 		float timedif = ((Utility.GetCurrentGameTime() - previousTime) / TimeScale.Value) * SecondsInDay
 		return fMax(DrainMag * timedif / numPriority, 0.0)
 	endFunction
@@ -235,10 +234,10 @@ EndState
 State ActiveFull
 	
 	Event OnUpdate()
-	DEBUGTEXT("OnUpdate Start")
+	;DEBUGTEXT("OnUpdate Start")
 		sendEvent(calculateModifier())
 		RegisterForMPUpdate()
-	DEBUGTEXT("OnUpdate End")
+	;DEBUGTEXT("OnUpdate End")
 	EndEvent
 	
 	; Returns the time in seconds until the soonest update
@@ -252,7 +251,7 @@ State ActiveFull
 			float timedif = ((Utility.GetCurrentGameTime() - previousTime) / TimeScale.Value) * SecondsInDay
 			return fMax(MagickaRateMag * timedif / numPriority, 0.0)
 		else
-			DEBUGTEXT("calculateModifer: numPriority = 0", 0, True, True)
+	;DEBUGTEXT("calculateModifer: numPriority = 0", 0, True, True)
 			return 0.0
 		endif
 	endFunction
@@ -278,14 +277,14 @@ State RegisterBusy
 	EndEvent
 	
 	Event OnUpdate()
-		DEBUGTEXT(">>> OnUpdate override")
+	;DEBUGTEXT(">>> OnUpdate override")
 		GoToState("Active")	; Ensures Magicka drain is properly removed 
 		UpdateState()
 	EndEvent
 
 	; Calling too many registers will call RgisterForMPUpdate() in this state, this might be solution
 	function RegisterForMPUpdate()
-		DEBUGTEXT(">>> RegisterForMPUpdate override")
+	;DEBUGTEXT(">>> RegisterForMPUpdate override")
 		RegisterForSingleUpdate(10.0)
 	endfunction	
 	
@@ -293,7 +292,7 @@ State RegisterBusy
 	
 	; Removes current MP magnitude from current priority and sends events if Listener's value falls below 0
 	function sendEvent(float akModifier)
-	DEBUGTEXT("SendEvent Override start", 0, True, True)	
+	;DEBUGTEXT("SendEvent Override start", 0, True, True)	
 	float timedif = ((Utility.GetCurrentGameTime() - previousTime) / TimeScale.Value) * SecondsInDay
 	;Debug.Messagebox("Before SendLoop:\nMPRateMag * TimeDif / PR = Modifier\n" +MagickaRateMag+ " * " +timedif+ " / " +numPriority+ " = " +akModifier+ "\n\nDrainMag * TimeDif / PR = Modifier\n" +DrainMag+ " * " +timedif+ " / " +numPriority+ " = " +akModifier)
 			
@@ -311,13 +310,13 @@ State RegisterBusy
 			index += 1
 		endwhile
 	
-	DEBUGTEXT("SendEvent Override end\t", 0, True, True)
+	;DEBUGTEXT("SendEvent Override end\t", 0, True, True)
 	endFunction
 	;___________________________________________________________________________________________________________________________
 
 	; Stores registration requests in a temporary array and deletes matches from the Unregiser buffer
 	bool function RegisterForEvent(INEQ_EventListenerBase akListener, float akMagicka, int akPriority)
-	DEBUGTEXT("Register Override start", 0, True, True)
+	;DEBUGTEXT("Register Override start", 0, True, True)
 		int index = UnregisterAB.find(akListener)
 		if index != -1
 			UnregisterAB[index] = none
@@ -337,7 +336,7 @@ State RegisterBusy
 			endif
 			SetBufferElement(index , akListener, akMagicka, akPriority) ; numBuffered
 			numBuffered += 1
-	DEBUGTEXT("Register Override end\t", 0, True, True)
+	;DEBUGTEXT("Register Override end\t", 0, True, True)
 			return true
 		endif
 	
@@ -366,11 +365,11 @@ State RegisterBusy
 	;___________________________________________________________________________________________________________________________
 	
 	Event OnEndState()
-		DEBUGTEXT("Endstate start\t\t\t", 0, True, True)
+	;DEBUGTEXT("Endstate start\t\t\t", 0, True, True)
 		
 		; Removes all elements uregistered while sending events, then shifts down
 		if numUnregistered
-		DEBUGTEXT("Unregister EndState start", 0, True, True)
+	;DEBUGTEXT("Unregister EndState start", 0, True, True)
 			ShiftListenerDown(UnregisterAB)
 			int i = numUnregistered
 			while i > 0
@@ -382,14 +381,14 @@ State RegisterBusy
 				endif
 				UnregisterAB[i] = None
 			endwhile
-		DEBUGTEXT("Unregister preshift\t\t", 0, True, True)
+	;DEBUGTEXT("Unregister preshift\t\t", 0, True, True)
 			ShiftElementsDown(RegisteredAB, RegisteredMP, RegisteredPR)
-		DEBUGTEXT("Unregister Endstate end", 0, True, True)
+	;DEBUGTEXT("Unregister Endstate end", 0, True, True)
 		endif
 		
 		; Adds all elements registered while sending events
 		if numBuffered
-		DEBUGTEXT("Register Endstate start", 0, True, True)
+	;DEBUGTEXT("Register Endstate start", 0, True, True)
 			ShiftElementsDown(BufferAB, BufferMP, BufferPR)
 			int i = numBuffered
 			while i > 0
@@ -402,7 +401,7 @@ State RegisterBusy
 				SetRegisterElement(index, bufferAb[i], bufferMP[i], bufferPR[i])
 				DeleteBufferElement(i)
 			endWhile
-		DEBUGTEXT("Register Endstate end\t", 0, True, True)
+	;DEBUGTEXT("Register Endstate end\t", 0, True, True)
 		endif
 		
 		; If any chages were made to the Register, sort it
@@ -413,7 +412,7 @@ State RegisterBusy
 		endif
 		UpdatePriorityCount()
 		
-		DEBUGTEXT("Endstate end\t\t\t", 0, True, True)
+	;DEBUGTEXT("Endstate end\t\t\t", 0, True, True)
 	EndEvent
 
 EndState
@@ -424,22 +423,19 @@ EndState
 
 ; Assumes array sorted from low to high priority. Decrease current phase mp's and sends recharge if mp < 0
 function sendEvent(float akModifier)
-	DEBUGTEXT("{SendEvent Start} Modifier: " +akModifier, MBox=True)
-	
+;DEBUGTEXT("{SendEvent Start} Modifier: " +akModifier, MBox=True)
 	UnregisterForupdate()
 	String preState = GetState()
 	GoToState("RegisterBusy")
 		SendEvent(akModifier)
 	GoToState(preState)
-
-	DEBUGTEXT("{SendEvent End}", MBox=True)
+;DEBUGTEXT("{SendEvent End}", MBox=True)
 endfunction
 ;___________________________________________________________________________________________________________________________
 
 ; Assumes array sorted. If passed reference is registered, shift the elements down and remove the last one [NEEDS TESTING]
 function UnregisterForEvent(INEQ_EventListenerBase akListener)
-	DEBUGTEXT("{Unregister Start}", MBox=True)
-	
+;DEBUGTEXT("{Unregister Start}", MBox=True)
 	String preState = GetState()
 	GoToState("RegisterBusy")
 		UnregisterForEvent(akListener)
@@ -448,15 +444,13 @@ function UnregisterForEvent(INEQ_EventListenerBase akListener)
 		sendEvent(calculateModifier())
 	endif
 	RegisterForMPUpdate()
-	
-	DEBUGTEXT("{Unregister End}", MBox=True)
+;DEBUGTEXT("{Unregister End}", MBox=True)
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
 ; Registers an item and a distance by adding it to an array, then sorts the items by descending distance
 bool function RegisterForEvent(INEQ_EventListenerBase akListener, float akMagicka, int akPriority)
-	DEBUGTEXT("{Register Start}", MBox=True)
-	
+;DEBUGTEXT("{Register Start}", MBox=True)
 	float modifier = calculateModifier()
 	String preState = GetState()
 	GoToState("RegisterBusy")
@@ -464,8 +458,7 @@ bool function RegisterForEvent(INEQ_EventListenerBase akListener, float akMagick
 		bool registered = RegisterForEvent(akListener, akMagicka, akPriority)
 	GoToState(preState)
 	RegisterForMPUpdate()
-	
-	DEBUGTEXT("{Register End}", MBox=True)
+;DEBUGTEXT("{Register End}", MBox=True)
 	return registered
 endFunction
 ;___________________________________________________________________________________________________________________________
@@ -473,7 +466,7 @@ endFunction
 ; Updates fields/states and registers for an update at the calculated time
 ; ERROR when calling this or calculateModifier if state is changed to RegisterBusy state
 function RegisterForMPUpdate()
-DEBUGTEXT("RegisterForMPUpdate() Start")
+;DEBUGTEXT("RegisterForMPUpdate() Start")
 	UpdateState()
 	UpdateFields()
 	if numRegistered > 0 && (MagickaRateMult > 0.0 || DrainMag > 0.0)

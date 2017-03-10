@@ -28,13 +28,6 @@ EndFunction
 Function RestoreDefaultFields()
 EndFunction
 
-; currently unused
-Function ResetState()
-	if !EquipRef.HasKeyword(KW_EnbaleAbility)
-		GoToState("Unequipped")
-	endif
-EndFunction
-
 ;===============================================================================================================================
 ;====================================			States			================================================
 ;================================================================================================

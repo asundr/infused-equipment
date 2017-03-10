@@ -66,8 +66,57 @@ bool Function hasMenu()
 	return Ability
 EndFunction
 ;___________________________________________________________________________________________________________________________
+;					Behavior related to letting Listeners register themselves for Menu access
 
-;returns true if changed to true, returns false if already true
+Function RegisterAbility(INEQ_AbilityBase akAbility)
+	Ability = akAbility
+EndFunction
+
+Function UnregisterAbility()
+	Ability = none
+EndFunction
+
+Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu, GlobalVariable MenuActive)
+	if Ability
+		Ability.AbilityMenu(Button, ListenerMenu, MenuActive)
+	else
+		Debug.Trace(self+ " attempted to access menu but no ability was registered")
+	endif
+EndFunction
+;___________________________________________________________________________________________________________________________
+
+; If active, will force the reference to the passed item
+Function AssignToEquipment(ObjectReference akEquipment)
+	EquipRef = akEquipment
+	if akEquipment && IsActive
+		ForceRefTo( akEquipment )
+	endif
+Endfunction
+;___________________________________________________________________________________________________________________________
+
+; activates and adds ability to player if unlocked or cheatmode activated
+Function ActivateAbility()
+	if  IsUnlocked || Cheatmode.value == 1
+		if  ! IsActive
+			AbilityToPlayer.ForceRefTo(PlayerRef)
+			if EquipRef
+				ForceRefTo(EquipRef)
+			endif
+			IsActive = True
+		endif
+	Endif
+EndFunction
+;___________________________________________________________________________________________________________________________
+
+; Turns off the ability
+Function DeactivateAbility()
+	Clear()
+	AbilityToPlayer.Clear()
+	IsActive = False
+EndFunction
+;___________________________________________________________________________________________________________________________
+
+; Returns true if changed to true, returns false if already true
 bool Function UnlockAbility()
 	int index
 	if IsUnlocked
@@ -140,54 +189,4 @@ EndFunction
 
 Function LockAbility()
 	IsUnlocked = False
-EndFunction
-;___________________________________________________________________________________________________________________________
-
-; If active, will force the reference to the passed item
-Function AssignToEquipment(ObjectReference akEquipment)
-	EquipRef = akEquipment
-	if akEquipment && IsActive
-		ForceRefTo( akEquipment )
-	endif
-Endfunction
-;___________________________________________________________________________________________________________________________
-
-; activates and adds ability to player if unlocked or cheatmode activated
-Function ActivateAbility()
-	if  IsUnlocked || Cheatmode.value == 1
-		if  ! IsActive
-			AbilityToPlayer.ForceRefTo(PlayerRef)
-			if EquipRef
-				ForceRefTo(EquipRef)
-			endif
-			IsActive = True
-		endif
-	Endif
-EndFunction
-;___________________________________________________________________________________________________________________________
-
-; Turns off the ability
-Function DeactivateAbility()
-	Clear()
-	AbilityToPlayer.Clear()
-	IsActive = False
-EndFunction
-
-;___________________________________________________________________________________________________________________________
-;					Behavior related to letting Listeners register themselves for Menu access
-
-Function RegisterAbility(INEQ_AbilityBase akAbility)
-	Ability = akAbility
-EndFunction
-
-Function UnregisterAbility()
-	Ability = none
-EndFunction
-
-Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu, GlobalVariable MenuActive)
-	if Ability
-		Ability.AbilityMenu(Button, ListenerMenu, MenuActive)
-	else
-		Debug.Trace(self+ " attempted to access menu but no ability was registered")
-	endif
 EndFunction

@@ -250,9 +250,9 @@ EndFunction
 ;___________________________________________________________________________________________________________________________
 
 ; Register for any recharge sources
-Function RegisterForRecharge()
-	RegisterForDistanceTravelledEvent(ChargeDistance)
-	RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR)
+Function RegisterForRecharge(bool bForced = False)
+	RegisterForDistanceTravelledEvent(ChargeDistance, bForced)
+	RegisterForMagickaSiphonEvent(ChargeMagickaMP, ChargeMagickaPR, bForced)
 EndFunction
 ;===============================================================================================================================
 ;====================================		    Menus			================================================
@@ -284,6 +284,7 @@ Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu Listen
 			ChargeMagickaPR = ListenerMenu.MagickaSiphonPriority(ChargeMagickaPR, DEFChargeMagickaPR)
 		endif
 	endwhile
+	RegisterForRecharge(True)
 EndFunction
 
 ; Updates the Button to show the correct menu options

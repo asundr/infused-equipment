@@ -35,7 +35,7 @@ int numBuffered = 0
 int numUnregistered = 0
 
 ;===============================================================================================================================
-;====================================	    Start/Finish		================================================
+;====================================	    Maintenance			================================================
 ;================================================================================================
 
 Event OnInit()
@@ -159,19 +159,6 @@ State RegisterBusy
 	; transfers elements from temporary arrays to the main array and then sorts it
 	Event OnEndState()
 	
-;		ShiftElementsDown(BufferAB, BufferDist)
-;		int i = 0
-;		while i < numBuffered ;&& numRequests < registeredAb.length
-;			registeredAb[numRequests] = bufferAb[i]
-;			registeredDist[numRequests] = bufferDist[i]
-;			bufferAb[i] = none
-;			bufferDist[i] = 0.0
-;			numRequests += 1
-;			i += 1
-;		endWhile
-;		numbuffered = 0
-;		sortDescending()
-
 		; Adds all elements registered while sending events (see INEQ_MagickaSiphon for detials)
 		if numBuffered
 			int i = 0
