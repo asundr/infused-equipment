@@ -21,8 +21,8 @@ int		Property	ChargeMagickaPR		Auto	Hidden
 int		Property	DEFChargeMode		=	0		Autoreadonly
 int		Property	DEFMaxLocalCharge	=	4		Autoreadonly
 int		Property	DEFChargeCost		=	2		Autoreadonly
-float	Property	DEFChargeDistance	=	100.0	Autoreadonly
-float	Property	DEFChargeMagickaMP	=	1000.0	Autoreadonly
+float	Property	DEFChargeDistance	=	500.0	Autoreadonly
+float	Property	DEFChargeMagickaMP	=	200.0	Autoreadonly
 int		Property	DEFChargeMagickaPR	=	50		Autoreadonly
 
 String  Property WeaponSwing	=	"weaponSwing"  					Autoreadonly
@@ -44,17 +44,8 @@ Event OnEffectStart(Actor akTarget, Actor akCaster)
 	RegisterForRecharge()
 EndEvent
 
-Event OnPlayerLoadGame()
-	parent.PlayerLoadGame()
-	Maintenance()
-EndEvent
-
-Function Maintenance()
-	parent.Maintenance()
-	RegisterForRecharge()
-EndFunction
-
 Function RestoreDefaultFields()
+	parent.RestoreDefaultFields()
 	bUseCharges		=	True
 	bBalanced		=	True
 	MaxLocalCharge	=	DEFMaxLocalCharge

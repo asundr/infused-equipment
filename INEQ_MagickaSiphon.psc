@@ -1,15 +1,14 @@
 Scriptname INEQ_MagickaSiphon extends INEQ_RechargeBase 
 {Diverts a portion of MP regen to registered abilities through events}
 
-; Abilities should have a MP requirement and a priority. Abiliteis with the same priority are charged simultaneously.
+; Abilities should have a MP requirement and a priority. Abilities with the same priority are charged simultaneously.
 ; This means that passive wards with high priority will be charged first, ignoring all else while other abilities that may have other charging
 ; mechanics like the auriel's shield or the bloodskal blade can use it when somehting like the ward isn't depending on it.
 
 ;===========================================  Properties  ===========================================================================>
 GlobalVariable	Property	TimeScale	Auto
 
-float Property	DrainPercentage	=	1.0	Auto	Hidden
-
+float Property	DrainPercentage			Auto	Hidden
 ;==========================================  Autoreadonly  ==========================================================================>
 float	Property	SecondsInDay	=	86400.0	Autoreadonly
 float	Property	CombatCheck		=	10.0	Autoreadonly		; checks at most CombatCheck seconds after last update
@@ -21,7 +20,6 @@ bool	Property	bDebugTrace		=	True	Autoreadonly
 bool	Property	bDebugMessage	=	True	Autoreadonly
 
 String	Property	CastStop	=	"CastStop"	Autoreadonly
-
 ;===========================================  Variables  ============================================================================>
 float previousTime
 float TotalMagicka
@@ -32,38 +30,25 @@ float MagickaRateMag
 float DrainMult
 float DrainMag
 
-bool bEnableOffState = True
-bool bSiphonBelowMax = False
+INEQ_EventListenerBase[] RegisteredAB
+float[] RegisteredMP
+int [] RegisteredPR
 
-INEQ_EventListenerBase[] registeredAb
-float[] registeredMP
-int [] registeredPR
-
-INEQ_EventListenerBase[] bufferAb
-float[]	bufferMP
-int [] bufferPR
+INEQ_EventListenerBase[] BufferAB
+float[]	BufferMP
+int [] BufferPR
 
 INEQ_EventListenerBase[] UnregisterAB
 
-int numRegistered = 0
-int numBuffered = 0
-int numPriority = 0
-int numUnregistered = 0
+bool bSiphonBelowMax
 
+int numRegistered
+int numBuffered
+int numPriority
+int numUnregistered
 ;===============================================================================================================================
 ;====================================	    Maintenance			================================================
 ;================================================================================================
-
-Event OnInit()
-	parent.Init()
-	registeredAb = new INEQ_EventListenerBase[16]
-	registeredMP = new float[16]
-	registeredPR = new int[16]
-	bufferAb = new INEQ_EventListenerBase[16]
-	bufferMP = new float[16]
-	bufferPR = new int[16]
-	UnregisterAB = new INEQ_EventListenerBase[16]
-EndEvent
 
 Event OnPlayerLoadGame()
 	parent.PlayerLoadGame()
@@ -77,9 +62,25 @@ Event OnPlayerLoadGame()
 EndEvent
 
 Function RestoreDefaultFields()
+	parent.RestoreDefaultFields()
 	DrainPercentage = DEFDrainPercentage
 	bSiphonBelowMax = False
 	RestoreMagickaDrain()
+EndFunction
+
+Function FullReset()
+	parent.FullReset()
+	RegisteredAB = new INEQ_EventListenerBase[32]
+	RegisteredMP = new float[32]
+	RegisteredPR = new int[32]
+	BufferAB = new INEQ_EventListenerBase[16]
+	BufferMP = new float[16]
+	BufferPR = new int[16]
+	UnregisterAB = new INEQ_EventListenerBase[16]
+	numRegistered = 0
+	numBuffered = 0
+	numPriority = 0
+	numUnregistered = 0
 EndFunction
 
 ;===============================================================================================================================
@@ -143,7 +144,7 @@ Auto State Off
 	
 	; Attempts to change state
 	Function UpdateState()
-		if numRegistered > 0 || !bEnableOffState
+		if numRegistered > 0
 			if SelfRef.GetActorValuePercentage("Magicka") == 1.0
 				GoToState("ActiveFull")
 			else
@@ -185,19 +186,18 @@ State Active
 		MagickaRateMult = SelfRef.GetActorValue("MagickaRateMult")
 	endFunction
 
-	
 	; Returns the time in seconds until the soonest event or MP restored to full depending on which is most imminent
 	float function GetUpdateTime()
 		float MPResetTime = 0.0
 		if MagickaRateMag
 			MPResetTime = fMax((TotalMagicka - SelfRef.GetActorValue("Magicka")) / MagickaRateMag, MPResetDelay)
 			if DrainMag
-				MPResetTime = fMin(fMax(registeredMP[numRegistered - 1] * numPriority / DrainMag, 0.0), MPResetTime)
+				MPResetTime = fMin(fMax(RegisteredMP[numRegistered - 1] * numPriority / DrainMag, 0.0), MPResetTime)
 			else
 				;return MPResetTime
 			endif
 		elseif DrainMag
-			MPResetTime = fMax(registeredMP[numRegistered - 1] * numPriority / DrainMag, 0.0)
+			MPResetTime = fMax(RegisteredMP[numRegistered - 1] * numPriority / DrainMag, 0.0)
 		endif
 		
 		if SelfRef.isInCombat()
@@ -207,7 +207,6 @@ State Active
 		endif
 	EndFunction
 	
-	
 	; Calculates the MP siphoned since last update using amount drained (convert to use parameter)
 	float function calculateModifier()
 	;DEBUGTEXT("calculateModifier start", 0, False, False)
@@ -215,9 +214,9 @@ State Active
 		return fMax(DrainMag * timedif / numPriority, 0.0)
 	endFunction
 	
-	; Attempts to change state, returns False if send to Off State
+	; Attempts to change state
 	Function UpdateState()
-		if numRegistered == 0 && bEnableOffState
+		if numRegistered == 0
 			RestoreMagickaDrain()
 			GoToState("Off")
 		elseif SelfRef.GetActorValuePercentage("Magicka") == 1.0
@@ -242,11 +241,12 @@ State ActiveFull
 	
 	; Returns the time in seconds until the soonest update
 	float function GetUpdateTime()
-		return fMin(fMax(registeredMP[numRegistered - 1] * numPriority / MagickaRateMag, 0.0), CombatCheck)
+		return fMin(fMax(RegisteredMP[numRegistered - 1] * numPriority / MagickaRateMag, 0.0), CombatCheck)
 	EndFunction
 	
 	; Calculates the MP siiphoned since last update using regular MagickaRateMult (convert to use parameter)
 	float function calculateModifier()
+	;DEBUGTEXT("calculateModifier start", 0, False, False)
 		if numPriority
 			float timedif = ((Utility.GetCurrentGameTime() - previousTime) / TimeScale.Value) * SecondsInDay
 			return fMax(MagickaRateMag * timedif / numPriority, 0.0)
@@ -258,7 +258,7 @@ State ActiveFull
 	
 	; Attempts to change state
 	Function UpdateState()
-		if numRegistered == 0 && bEnableOffState
+		if numRegistered == 0
 			GoToState("Off")
 		elseif SelfRef.GetActorValuePercentage("Magicka") < 1.0
 			GoToState("Active")
@@ -293,23 +293,19 @@ State RegisterBusy
 	; Removes current MP magnitude from current priority and sends events if Listener's value falls below 0
 	function sendEvent(float akModifier)
 	;DEBUGTEXT("SendEvent Override start", 0, True, True)	
-	float timedif = ((Utility.GetCurrentGameTime() - previousTime) / TimeScale.Value) * SecondsInDay
-	;Debug.Messagebox("Before SendLoop:\nMPRateMag * TimeDif / PR = Modifier\n" +MagickaRateMag+ " * " +timedif+ " / " +numPriority+ " = " +akModifier+ "\n\nDrainMag * TimeDif / PR = Modifier\n" +DrainMag+ " * " +timedif+ " / " +numPriority+ " = " +akModifier)
-			
 		int index = numRegistered - numPriority
 		int max = numRegistered
 		while 	index < max
-			registeredMP[index] =  registeredMP[index] - akModifier
-			if registeredMP[index] <= 0.0
-				registeredAB[index].bRegisteredMS = False
-				registeredAb[index].OnMagickaSiphonEvent()
+			RegisteredMP[index] =  RegisteredMP[index] - akModifier
+			if RegisteredMP[index] <= 0.0
+				RegisteredAB[index].bRegisteredMS = False
+				RegisteredAB[index].OnMagickaSiphonEvent()
 				DeleteRegisterElement(index)
 				numRegistered -= 1
 				numPriority -= 1
 			endif
 			index += 1
 		endwhile
-	
 	;DEBUGTEXT("SendEvent Override end\t", 0, True, True)
 	endFunction
 	;___________________________________________________________________________________________________________________________
@@ -322,10 +318,10 @@ State RegisterBusy
 			UnregisterAB[index] = none
 			numUnregistered -= 1
 		endif
-		if numBuffered == bufferAb.length
+		if numBuffered == BufferAB.length
 			Debug.Trace(self+ ": Number of registers exceeded buffer or main array on adding " +akListener)
 			return false
-		elseif numBuffered + numRegistered >= registeredAb.length
+		elseif numBuffered + numRegistered >= RegisteredAB.length
 			Debug.Trace(self+ ": Number of registers exceeded main array length on adding " +akListener)
 			return false
 		else
@@ -334,7 +330,7 @@ State RegisterBusy
 				Debug.MessageBox("GetFirstNone returned < 0")
 				Debug.Trace("GetFirstNone returned < 0")
 			endif
-			SetBufferElement(index , akListener, akMagicka, akPriority) ; numBuffered
+			SetBufferElement(index , akListener, akMagicka, akPriority)
 			numBuffered += 1
 	;DEBUGTEXT("Register Override end\t", 0, True, True)
 			return true
@@ -351,7 +347,7 @@ State RegisterBusy
 			DeleteBufferElement(index)
 			numBuffered -= 1
 		endif
-		index = RegisteredAb.find(akListener)
+		index = RegisteredAB.find(akListener)
 		if index != -1
 			if numUnregistered < UnregisterAB.length
 				UnregisterAB[getFirstNone(BufferAB)] = akListener
@@ -369,39 +365,38 @@ State RegisterBusy
 		
 		; Removes all elements uregistered while sending events, then shifts down
 		if numUnregistered
-	;DEBUGTEXT("Unregister EndState start", 0, True, True)
+		;DEBUGTEXT("Unregister EndState start", 0, True, True)
 			ShiftListenerDown(UnregisterAB)
 			int i = numUnregistered
 			while i > 0
 				i -= 1
-				int index = registeredAB.find(UnRegisterAB[i])
+				int index = RegisteredAB.find(UnregisterAB[i])
 				if index != -1
 					DeleteRegisterElement(index)
 					numRegistered -= 1
 				endif
 				UnregisterAB[i] = None
 			endwhile
-	;DEBUGTEXT("Unregister preshift\t\t", 0, True, True)
 			ShiftElementsDown(RegisteredAB, RegisteredMP, RegisteredPR)
-	;DEBUGTEXT("Unregister Endstate end", 0, True, True)
+		;DEBUGTEXT("Unregister Endstate end", 0, True, True)
 		endif
 		
 		; Adds all elements registered while sending events
 		if numBuffered
-	;DEBUGTEXT("Register Endstate start", 0, True, True)
+		;DEBUGTEXT("Register Endstate start", 0, True, True)
 			ShiftElementsDown(BufferAB, BufferMP, BufferPR)
 			int i = numBuffered
 			while i > 0
 				i -= 1
-				int index = registeredAb.find(bufferAb[i])
+				int index = RegisteredAB.find(BufferAB[i])
 				if index == -1
 					index = numRegistered	; add to the end
 					numRegistered += 1
 				endif
-				SetRegisterElement(index, bufferAb[i], bufferMP[i], bufferPR[i])
+				SetRegisterElement(index, BufferAB[i], BufferMP[i], BufferPR[i])
 				DeleteBufferElement(i)
 			endWhile
-	;DEBUGTEXT("Register Endstate end\t", 0, True, True)
+		;DEBUGTEXT("Register Endstate end\t", 0, True, True)
 		endif
 		
 		; If any chages were made to the Register, sort it
@@ -464,13 +459,11 @@ endFunction
 ;___________________________________________________________________________________________________________________________
 
 ; Updates fields/states and registers for an update at the calculated time
-; ERROR when calling this or calculateModifier if state is changed to RegisterBusy state
 function RegisterForMPUpdate()
 ;DEBUGTEXT("RegisterForMPUpdate() Start")
 	UpdateState()
 	UpdateFields()
 	if numRegistered > 0 && (MagickaRateMult > 0.0 || DrainMag > 0.0)
-		;float updateTime = getUpdateTime()
 		if GetState() != "RegisterBusy"
 			float updateTime = getUpdateTime()
 			RegisterForSingleUpdate(updateTime)
@@ -517,8 +510,8 @@ EndFunction
 Function UpdatePriorityCount()
 	if numRegistered > 0
 		int index = numRegistered - 1
-		int currentPriority = registeredPR[numRegistered - 1]
-		while index && registeredPR[index - 1] == currentPriority
+		int currentPriority = RegisteredPR[numRegistered - 1]
+		while index && RegisteredPR[index - 1] == currentPriority
 			index -= 1
 		endwhile
 		numPriority = numRegistered - index
@@ -535,7 +528,6 @@ function RestoreMagickaDrain()
 		MagickaRateMult = SelfRef.GetActorValue("MagickaRateMult")
 		DrainMult = 0.0
 		DrainMag = 0.0
-	;Debug.MessageBox("Restore Magicka Drain\n[MagickaMult, DrainMult]\n[" +SelfRef.GetActorValue("MagickaRateMult")+ ", " +drainmult+ "]")
 	endif
 endFunction
 
@@ -615,9 +607,9 @@ function sortAscending()
 	while index1 < numRegistered - 1
 		int index2 = index1 + 1
 		while index2 < numRegistered
-			if registeredPR[index1] == registeredPR[index2] && registeredMP[index1] < registeredMP[index2]
+			if RegisteredPR[index1] == RegisteredPR[index2] && RegisteredMP[index1] < RegisteredMP[index2]
 				swap(index1, index2)
-			elseif registeredPR[index1] > registeredPR[index2]
+			elseif RegisteredPR[index1] > RegisteredPR[index2]
 				swap(index1, index2)
 			endif
 			index2 += 1
@@ -629,19 +621,19 @@ endfunction
 
 ; Takes two indexes and swaps their contents in the ability and distance arrays
 function swap(int a, int b)
-	INEQ_EventListenerBase tempAB = registeredAb[a]
-	float tempMP = registeredMP[a]
-	int tempPR = registeredPR[a]
-	SetRegisterElement(a, registeredAb[b], registeredMP[b], registeredPR[b])
+	INEQ_EventListenerBase tempAB = RegisteredAB[a]
+	float tempMP = RegisteredMP[a]
+	int tempPR = RegisteredPR[a]
+	SetRegisterElement(a, RegisteredAB[b], RegisteredMP[b], RegisteredPR[b])
 	SetRegisterElement(b, tempAB, tempMP, tempPR)
 endfunction
 ;___________________________________________________________________________________________________________________________
 ;							Various functions to handle manipulating the arrays
 function SetRegisterElement(int index, INEQ_EventListenerBase akListener, float akMagicka, int akPriority)
 	if index != -1
-		registeredAb[index] = akListener
-		registeredMP[index] = akMagicka
-		registeredPR[index] = akPriority
+		RegisteredAB[index] = akListener
+		RegisteredMP[index] = akMagicka
+		RegisteredPR[index] = akPriority
 	endif
 Endfunction
 
@@ -652,9 +644,9 @@ endfunction
 
 function SetBufferElement(int index, INEQ_EventListenerBase akListener, float akMagicka, int akPriority)
 	if index != -1
-		bufferAb[index] = akListener
-		bufferMP[index] = akMagicka
-		bufferPR[index] = akPriority
+		BufferAB[index] = akListener
+		BufferMP[index] = akMagicka
+		BufferPR[index] = akPriority
 	endif
 endFunction
 
@@ -727,7 +719,7 @@ function DEBUGTEXT(String text, int type = -1,  bool mp = false, bool listener =
 	endif
 	if bDebugMessage
 		if MBox
-			Debug.Messagebox(text+ ":\tnumPriority=" +numPriority+ "\n0) Priority:" +registeredPR[0]+ " MP:" +registeredMP[0]+   "\n1) Priority:" +registeredPR[1]+ " MP:" +registeredMP[1]+"\n2) Priority:" +registeredPR[2]+ " MP:" +registeredMP[2])
+			Debug.Messagebox(text+ ":\tnumPriority=" +numPriority+ "\n0) Priority:" +RegisteredPR[0]+ " MP:" +RegisteredMP[0]+   "\n1) Priority:" +RegisteredPR[1]+ " MP:" +RegisteredMP[1]+"\n2) Priority:" +RegisteredPR[2]+ " MP:" +RegisteredMP[2])
 		endif
 	endif
 endFunction

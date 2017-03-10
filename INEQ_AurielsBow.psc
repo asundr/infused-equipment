@@ -10,6 +10,14 @@ GlobalVariable	Property	GameHour			Auto
 Spell	Property	DLC1AurielsBowSunAttackSpell	Auto
 Spell	Property	DLC1AurielsBowEclipseSpell		Auto
 
+Spell	Property	VoiceClearSkiesSelf1	Auto
+Spell	Property	VoiceClearSkiesSelf2	Auto
+Spell	Property	VoiceClearSkiesSelf3	Auto
+
+MagicEffect	Property	VoiceClearSkies1Self Auto
+MagicEffect	Property	VoiceClearSkies2Self Auto
+MagicEffect	Property	VoiceClearSkies3Self Auto
+
 Ammo	Property	DLC1ElvenArrowBlood		Auto  
 Ammo	Property	DLC1ElvenArrowBlessed	Auto
 
@@ -24,7 +32,7 @@ Float	Property	ChargeDistance	Auto	Hidden
 int		Property	ChargeTime		Auto	Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
-Float	Property	DEFChargeDistance	=	100.0	Autoreadonly	; in feet ; 2000.0
+Float	Property	DEFChargeDistance	=	2000.0	Autoreadonly	; in feet
 int		Property	DEFChargeTime		=	600		Autoreadonly
 
 int		Property	EclipseResetTime	=	20		Autoreadonly	; 24 HourTime (default 20 = 8pm)
@@ -49,6 +57,7 @@ Event OnEffectStart(Actor akTarget, Actor akCaster)
 EndEvent
 
 Function RestoreDefaultFields()
+	parent.RestoreDefaultFields()
 	bBalanced		= True
 	bRecharged		= False
 	bUseCharges		= True
@@ -89,9 +98,11 @@ State ArrowNocked
 	Event OnPlayerBowShot(Weapon akWeapon, Ammo akAmmo, float akBowDraw, bool abSunGazing)
 		if abSunGazing == True && DLC1EclipseActive.Value == 0 && akBowDraw >= 0.95
 			if  SelfRef.IsSneaking()
-				DLC1AurielsBowEclipseSpell.Cast(SelfRef, SelfRef)
-				RegisterForSingleUpdateGameTime(EclipseResetTime - GameHour.Value)
-				DLC1EclipseActive.Value = 1.0
+				if CanCastEclipse()
+					DLC1AurielsBowEclipseSpell.Cast(SelfRef, SelfRef)
+					RegisterForSingleUpdateGameTime(EclipseResetTime - GameHour.Value)
+					DLC1EclipseActive.Value = 1.0
+				endif
 			else
 				if 	akAmmo == DLC1ElvenArrowBlessed
 					DLC1AurielsBowSunAttackSpell.Cast(SelfRef, SelfRef)
@@ -104,18 +115,20 @@ State ArrowNocked
 				endif
 			endif
 		endif
-;Debug.Notification("Exit Nocked via OnPlayerBowShot")
 		GoToState("Equipped")
 	EndEvent
 	
 	Event OnAnimationEvent(ObjectReference akSource, string asEventName)
-;Debug.Notification("Exit Nocked via AnimationEvent")
-		Utility.Wait(0.1)
+		RegisterForSingleUpdate(0.1)
+	EndEvent
+	
+	Event OnUpdate()
 		GoToState("Equipped")
 	EndEvent
 
 	Event OnEndState()
 		UnregisterForAnimationEvent(Game.GetPlayer(), ArrowFired)
+		UnregisterForUpdate()
 		GetSunGazeImod(False)
 	EndEvent
 
@@ -125,13 +138,29 @@ EndState
 ;=======================================	   Functions		===================================================
 ;================================================================================================
 
-;event for clearskies spell to reset eclipse
+; Event for clearskies spell to reset eclipse
+Event OnSpellCast(Form akSpell)
+	if akSpell == VoiceClearSkiesSelf1 || akSpell == VoiceClearSkiesSelf2 || akSpell == VoiceClearSkiesSelf3
+		ResetEclipse()
+	endif
+EndEvent
+
+bool Function CanCastEclipse()
+	return 	!DLC1EclipseActive.Value &&\
+			!(SelfRef.HasMagicEffect(VoiceClearSkies1Self) ||\
+			SelfRef.HasMagicEffect(VoiceClearSkies2Self) ||\
+			SelfRef.HasMagicEffect(VoiceClearSkies3Self) )
+EndFunction
 
 ; Alters the sunglare corresponding to the sunburst/eclipse ability depending on the player's sneak state
 ImageSpaceModifier Function GetSunGazeImod(bool activate = True)
 	if activate
 		if SelfRef.IsSneaking()
-			MyImageSpace = DarkImodFX
+			if CanCastEclipse()
+				MyImageSpace = DarkImodFX
+			else
+				MyImageSpace = None
+			endif
 		else
 			if bRecharged
 				MyImageSpace = LightImodFX
@@ -155,17 +184,8 @@ Function RegisterRecharge(bool bForced = False)
 			UnregisterForupdate()
 			RegisterForDistanceTravelledEvent(ChargeDistance, bForced)
 		endif
-;	else
-;		RegisterForSingleUpdate(0)
 	endif
 EndFunction
-;___________________________________________________________________________________________________________________________
-
-;Function ReRegisterRecharge()
-;	UnregisterForUpdate()
-;	UnregisterForDistanceTravelledEvent()
-;	RegisterRecharge()
-;EndFunction
 ;___________________________________________________________________________________________________________________________
 
 ; Recharges Auriel's sunburst after a predefined Distance travelled
@@ -215,19 +235,14 @@ Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu Listen
 			bRecharged = True
 		elseif aiButton == 4	; Turn off charges
 			bUseCharges = False
-			;ReRegisterRecharge()
 		elseif aiButton == 5	; Turn on timer
 			bUseTimer = True
-			;ReRegisterRecharge()
 		elseif aiButton == 6	; Turn off timer (use distance)
 			bUseTimer = False
-			;ReRegisterRecharge()
 		elseif aiButton == 7	; Set Distance
 			ChargeDistance = ListenerMenu.DistanceTravelledCost(ChargeDistance, DEFChargeDistance)
-			;ReRegisterRecharge()
 		elseif aiButton == 8	; Set time
 			ChargeTime = ListenerMenu.ChargeTime(ChargeTime, DEFChargeTime)
-			;ReRegisterRecharge()
 		endif
 	endwhile
 	RegisterRecharge(True)

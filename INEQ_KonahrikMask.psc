@@ -38,6 +38,7 @@ Event OnEffectStart(Actor akTarget, Actor akCaster)
 EndEvent
 
 Function RestoreDefaultFields()
+	parent.RestoreDefaultFields()
 	bBalanced		= True
 	bCharged		= True
 	HPthreshold		= DEFHPThreshold

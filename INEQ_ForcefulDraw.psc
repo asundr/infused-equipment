@@ -19,7 +19,7 @@ Float	Property	ChargeDistance		Auto	Hidden			; in feet
 int		Property	ChargeTime			Auto	Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
-float	Property	DEFChargeDistance	=	2000.0		Autoreadonly
+float	Property	DEFChargeDistance	=	1000.0		Autoreadonly
 int		Property	DEFChargeTime		=	300			Autoreadonly
 
 String  Property	WeaponDrawn			=	"WeaponDraw"  	Autoreadonly		; Draw weapon
@@ -37,12 +37,8 @@ Event OnEffectStart(Actor akTarget, Actor akCaster)
 	RegisterAbilityToAlias()
 EndEvent
 
-Event OnPlayerLoadGame()
-	parent.PlayerLoadGame()
-	RegisterForDistanceTravelledEvent(ChargeDistance)
-EndEvent
-
 Function RestoreDefaultFields()
+	parent.RestoreDefaultFields()
 	bBalanced		= True
 	bUseCharges		= True
 	bUseTimer		= False
@@ -92,6 +88,8 @@ State Active
 			CastForcefulDraw()
 			RegisterRecharge()
 			GoToState("Equipped")
+		else
+			RechargeVisual.cast(SelfRef,SelfRef)
 		endif
 	EndEvent
 

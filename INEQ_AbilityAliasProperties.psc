@@ -27,19 +27,20 @@ ObjectReference EquipRef
 ;====================================	    Maintenance			================================================
 ;================================================================================================
 
-; Deactivate and Lock ability
-Function FullReset(bool bLock = false)
-	DeactivateAbility()
-	EquipRef = None
-	if bLock
-		LockAbility()
-	endif
-EndFunction
-
 ; If ability active and has menu, restore it to default fields
 Function RestoreDefaultFields()
 	if Ability
 		Ability.RestoreDefaultFields()
+	endif
+EndFunction
+
+; Deactivate and Lock ability
+Function FullReset(bool bLock = false)
+	RestoreDefaultFields()
+	DeactivateAbility()
+	EquipRef = None
+	if bLock
+		LockAbility()
 	endif
 EndFunction
 
@@ -108,7 +109,7 @@ Function ActivateAbility()
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
-; Turns off the ability
+; Turns off the ability and clears the Aliases
 Function DeactivateAbility()
 	Clear()
 	AbilityToPlayer.Clear()

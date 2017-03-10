@@ -10,7 +10,7 @@ Scriptname INEQ_PassiveWard extends INEQ_AbilityBase
 
 ;===========================================  Properties  ===========================================================================>
 Message	Property	OptionsMenu			Auto
-Message	Property	ThreshholdOptions	Auto
+Message	Property	ThresholdOptions	Auto
 Message	Property	RangeOptions		Auto
 
 Quest	Property	SMART__EssentialPlayer	Auto
@@ -22,23 +22,21 @@ Explosion			Property	crAtronachFrostExplosion	Auto
 
 bool	Property	bBalanced		Auto	Hidden
 
-int 	Property	Threshhold 		Auto	Hidden
-int 	Property	Range 			Auto	Hidden
-float	Property	RechargeMP		Auto	Hidden	;Derived from threshold and chargemult
-int		Property	RechargePR		Auto	Hidden
 int 	Property	ChargeTime		Auto	Hidden
-
+int 	Property	Threshold 		Auto	Hidden
+int 	Property	Range 			Auto	Hidden
+int		Property	RechargePR		Auto	Hidden
+float	Property	RechargeMP		Auto	Hidden	;Derived from threshold and chargemult
 ;==========================================  Autoreadonly  ==========================================================================>
-int		Property	DEFThreshhold	=	5	Autoreadonly
+int		Property	DEFChargeTime	=	120	Autoreadonly
+int		Property	DEFThreshold	=	5	Autoreadonly
 int		Property	DEFRange		=	30	Autoreadonly
 int		Property	DEFRechargePR	=	90	Autoreadonly
-int		Property	DEFChargeTime	=	120	Autoreadonly
 
 float	Property	SecondsInDay	=	86400.0		Autoreadonly
 
 String	Property	CastStop		=	"CastStop"	Autoreadonly
 String	Property	JumpDown		=	"JumpDown"	Autoreadonly
-
 ;===========================================  Variables  ============================================================================>
 float previousHealth
 float maximumHealth
@@ -46,14 +44,12 @@ float rateHealth
 float previousTime
 
 int InstanceID
-
 ;===============================================================================================================================
 ;====================================	    Maintenance			================================================
 ;================================================================================================
 
 Event OnEffectStart (Actor akTarget, Actor akCaster)
 	parent.EffectStart(akTarget, akCaster)
-	GetMagickaCost()
 	RegisterAbilityToAlias()
 EndEvent
 
@@ -64,8 +60,9 @@ Event OnEffectFinish (Actor akTarget, Actor akCaster)
 EndEvent
 
 Function RestoreDefaultFields()
+	parent.RestoreDefaultFields()
 	bBalanced	= True
-	Threshhold	= DEFThreshhold
+	Threshold	= DEFThreshold
 	Range		= DEFRange
 	RechargePR	= DEFRechargePR
 	ChargeTime	= DEFChargeTime
@@ -98,19 +95,11 @@ State Equipped
 	EndEvent
 	
 	Function OnMagickaSiphonEvent()
-		;Debug.Notification("Passive ward recharged!")
-		InstanceID = RechargeSoundFX.play(selfRef)      	; play RechargeSoundFX sound from player
-		Sound.SetInstanceVolume(instanceID,1.0) 			; Play full volume
-		RechargeImod.apply(0.5)     			 			; Recharge ImageMod , 50%
-		GoToState("Active")
+		ActivateWard()
 	EndFunction
 	
 	Event OnUpdate()
-		;Debug.Notification("Passive ward recharged!")
-		InstanceID = RechargeSoundFX.play(selfRef)      	; play RechargeSoundFX sound from player
-		Sound.SetInstanceVolume(instanceID,1.0) 			; Play full volume
-		RechargeImod.apply(0.5)     			 			; Recharge ImageMod , 50%
-		GoToState("Active")
+		ActivateWard()
 	EndEvent
 	
 EndState
@@ -173,6 +162,28 @@ EndState
 ;====================================			Functions			================================================
 ;================================================================================================
 
+; Registers for a recharege depending on the settings
+Function RegisterRecharge(bool bForced = False)
+	if GetState() == "Equipped"
+		if bBalanced
+			RegisterForMagickaSiphonEvent(RechargeMP, RechargePR, bForced)
+		else
+			RegisterForSingleUpdate(ChargeTime)
+		endif
+	endif
+EndFunction
+;___________________________________________________________________________________________________________________________
+
+; Puts ward into active state and plays associated visuals
+Function ActivateWard()
+	;Debug.Notification("Passive ward recharged!")
+	InstanceID = RechargeSoundFX.play(selfRef)      	; play RechargeSoundFX sound from player
+	Sound.SetInstanceVolume(instanceID,1.0) 			; Play full volume
+	RechargeImod.apply(0.5)     			 			; Recharge ImageMod , 50%
+	GoToState("Active")
+EndFunction
+;___________________________________________________________________________________________________________________________
+
 ; Returns the sum of previousHealth and health regenerated since the last UpdateFields()
 float Function getRegenHealth()
 	float timedif = ((Utility.GetCurrentGameTime() - previousTime) / TimeScale.Value) * SecondsInDay
@@ -205,14 +216,14 @@ Function UpdateFields()
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
-; Determine's the damage of the hit then uses the ward if within threshhold conditions are met
+; Determine's the damage of the hit then uses the ward if within Threshold conditions are met
 Function processHit()
 	float currentHealth = selfRef.getActorValue("health")
 	if (currentHealth > 0 )
 		float difference = getRegenHealth() - currentHealth
-		if (difference > Threshhold)
-			if difference  < Threshhold + Range
-				Debug.Notification("Player hit within (" +Threshhold+ ", " +((Threshhold + Range) as int)+ "): " +(difference as int)+ "!")
+		if (difference > Threshold)
+			if difference  < Threshold + Range
+				Debug.Notification("Player hit within (" +Threshold+ ", " +((Threshold + Range) as int)+ "): " +(difference as int)+ "!")
 				SelfRef.RestoreActorValue("health", difference)
 				GoToState("Equipped")
 			else
@@ -220,7 +231,7 @@ Function processHit()
 			endif
 		else
 			if difference > 1
-				Debug.Notification((difference as int) + " damage")
+				;Debug.Notification((difference as int) + " damage")
 			endif
 			UpdateFields()
 		endif
@@ -239,8 +250,7 @@ EndFunction
 
 ; Calculates the cost in magicka 
 float function GetMagickaCost()
-	float num = Threshhold + Math.Pow(Range, 3.0)
-	RechargeMP =  20.0 * NaturalLog(num)
+	RechargeMP = Math.Pow(Threshold, 2)/150.0 + 250.0*NaturalLog(Range) + 0.25*Range
 	return RechargeMP
 endFunction
 ;___________________________________________________________________________________________________________________________
@@ -288,18 +298,6 @@ Float Function NaturalLog(float x, float precision = 0.01, float divisor = 1.0)
 	endWhile	
 	return 2.0 * result + y
 EndFunction
-;___________________________________________________________________________________________________________________________
-
-; 
-Function RegisterRecharge(bool bForced = False)
-	if GetState() == "Equipped"
-		if bBalanced
-			RegisterForMagickaSiphonEvent(RechargeMP, RechargePR, bForced)
-		else
-			RegisterForSingleUpdate(ChargeTime)
-		endif
-	endif
-EndFunction
 
 ;===============================================================================================================================
 ;====================================			Menus			================================================
@@ -321,8 +319,8 @@ Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu Listen
 			bBalanced = False
 		elseif aiButton == 3	; Set Cooldown length
 			ChargeTime = ListenerMenu.ChargeTime(ChargeTime, DEFChargeTime)
-		elseif aiButton == 4	; Set Threshhold
-			MenuThreshhold()
+		elseif aiButton == 4	; Set Threshold
+			MenuThreshold()
 		elseif aiButton == 5	; Set range
 			MenuRange()
 		elseif aiButton == 6	; Set Priority
@@ -348,38 +346,38 @@ Function SetButton(INEQ_MenuButtonConditional Button)
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
-; Allows player to set minimum damage threshhold for protection from ward
-Function MenuThreshhold()
+; Allows player to set minimum damage Threshold for protection from ward
+Function MenuThreshold()
 	bool abMenu = True
 	int aiButton
 	while abMenu
-		Debug.Notification("Currrent minimum damage threshhold: " +Threshhold+ " damage")
-		aiButton = ThreshholdOptions.Show()
+		Debug.Notification("Currrent minimum damage Threshold: " +Threshold+ " damage")
+		aiButton = ThresholdOptions.Show()
 		if aiButton == 0
 			GetMagickaCost()
 			Debug.MessageBox("Magicka cost: " +RechargeMP)
 			return
 		elseif aiButton == 1
-			Threshhold -= 1000
+			Threshold -= 50
 		elseif aiButton == 2
-			Threshhold -= 100
+			Threshold -= 10
 		elseif aiButton == 3
-			Threshhold -= 10
+			Threshold -= 5
 		elseif aiButton == 4
-			Threshhold -= 1
+			Threshold -= 1
 		elseif aiButton == 5
-			Threshhold += 1
+			Threshold += 1
 		elseif aiButton == 6
-			Threshhold += 10
+			Threshold += 5
 		elseif aiButton == 7
-			Threshhold += 100
+			Threshold += 10
 		elseif aiButton == 8
-			Threshhold += 1000
+			Threshold += 50
 		elseif aiButton == 9
-			Threshhold = DEFThreshhold
+			Threshold = DEFThreshold
 		endif
-		if Threshhold < 1
-			Threshhold = 1
+		if Threshold < 1
+			Threshold = 1
 		endif
 	endwhile
 EndFunction
@@ -397,21 +395,21 @@ Function MenuRange()
 			Debug.MessageBox("Magicka cost: " +RechargeMP)
 			return
 		elseif aiButton == 1
-			Range -= 1000
+			Range -= 50
 		elseif aiButton == 2
-			Range -= 100
-		elseif aiButton == 3
 			Range -= 10
+		elseif aiButton == 3
+			Range -= 5
 		elseif aiButton == 4
 			Range -= 1
 		elseif aiButton == 5
 			Range += 1
 		elseif aiButton == 6
-			Range += 10
+			Range += 5
 		elseif aiButton == 7
-			Range += 100
+			Range += 10
 		elseif aiButton == 8
-			Range += 1000
+			Range += 50
 		elseif aiButton == 9
 			Range = DEFRange
 		endif

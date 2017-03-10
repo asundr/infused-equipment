@@ -13,10 +13,15 @@ Spell	Property	AbilitySpell	Auto
 ;====================================	    Maintenance			================================================
 ;================================================================================================
 
-Event OnEffectFinish (Actor akTarget, Actor akCaster)
+;Event OnEffectFinish (Actor akTarget, Actor akCaster)
+;	SelfRef.removespell(AbilitySpell)
+;	parent.EffectFinish(akTarget, akCaster)
+;EndEvent
+
+Function EffectFinish(Actor akTarget, Actor akCaster)
 	SelfRef.removespell(AbilitySpell)
 	parent.EffectFinish(akTarget, akCaster)
-EndEvent
+EndFunction
 
 ;===============================================================================================================================
 ;====================================			States			================================================

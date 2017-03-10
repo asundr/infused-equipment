@@ -33,6 +33,7 @@ Event OnEffectFinish (Actor akTarget, Actor akCaster)
 EndEvent
 
 Function RestoreDefaultFields()
+	parent.RestoreDefaultFields()
 	LightThreshold = DEFLightThreshold
 EndFunction
 
@@ -109,7 +110,7 @@ Function SetLightThreshold()
 	bool abMenu = True
 	int aiButton
 	while abMenu
-		Debug.Notification("Currrent light level threshhold: " +LightThreshold)
+		Debug.Notification("Currrent light level threshhold: " +(LightThreshold as int))
 		aiButton = LightThresholdMenu.Show()
 		if aiButton == 0
 			return
