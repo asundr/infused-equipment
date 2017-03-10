@@ -21,15 +21,26 @@ bool  Property  IsActive  	=  False  Auto  Hidden
 
 ;===========================================  Variables  ============================================================================>
 INEQ_AbilityBase Ability
+ObjectReference EquipRef
 
 ;===============================================================================================================================
 ;====================================	    Maintenance			================================================
 ;================================================================================================
 
 ; Deactivate and Lock ability
-Function FullReset()
+Function FullReset(bool bLock = false)
 	DeactivateAbility()
-	LockAbility()
+	EquipRef = None
+	if bLock
+		LockAbility()
+	endif
+EndFunction
+
+; If ability active and has menu, restore it to default fields
+Function RestoreDefaultFields()
+	if Ability
+		Ability.RestoreDefaultFields()
+	endif
 EndFunction
 
 ;===============================================================================================================================
@@ -54,14 +65,6 @@ endfunction
 bool Function hasMenu()
 	return Ability
 EndFunction
-;___________________________________________________________________________________________________________________________
-
-; If active, will force the reference to the passed item
-Function AssignToEquipment(ObjectReference akEquipment)
-	if IsActive
-		ForceRefTo( akEquipment )
-	endif
-Endfunction
 ;___________________________________________________________________________________________________________________________
 
 ;returns true if changed to true, returns false if already true
@@ -140,11 +143,23 @@ Function LockAbility()
 EndFunction
 ;___________________________________________________________________________________________________________________________
 
+; If active, will force the reference to the passed item
+Function AssignToEquipment(ObjectReference akEquipment)
+	EquipRef = akEquipment
+	if akEquipment && IsActive
+		ForceRefTo( akEquipment )
+	endif
+Endfunction
+;___________________________________________________________________________________________________________________________
+
 ; activates and adds ability to player if unlocked or cheatmode activated
 Function ActivateAbility()
 	if  IsUnlocked || Cheatmode.value == 1
 		if  ! IsActive
 			AbilityToPlayer.ForceRefTo(PlayerRef)
+			if EquipRef
+				ForceRefTo(EquipRef)
+			endif
 			IsActive = True
 		endif
 	Endif
@@ -157,6 +172,7 @@ Function DeactivateAbility()
 	AbilityToPlayer.Clear()
 	IsActive = False
 EndFunction
+
 ;___________________________________________________________________________________________________________________________
 ;					Behavior related to letting Listeners register themselves for Menu access
 

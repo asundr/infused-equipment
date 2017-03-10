@@ -20,13 +20,13 @@ Sound				Property	RechargeSoundFX	Auto
 ImageSpaceModifier	Property	RechargeImod	Auto
 Explosion			Property	crAtronachFrostExplosion	Auto
 
-bool	Property	bBalanced	=	True	Auto	Hidden
+bool	Property	bBalanced		Auto	Hidden
 
-int 	Property	Threshhold 	= 	5 		Auto	Hidden
-int 	Property	Range 		= 	30		Auto	Hidden
-float	Property	RechargeMP				Auto	Hidden	;Derived from threshold and chargemult
-int		Property	RechargePR	=	90		Auto	Hidden
-int 	Property	ChargeTime	= 	120 	auto	Hidden
+int 	Property	Threshhold 		Auto	Hidden
+int 	Property	Range 			Auto	Hidden
+float	Property	RechargeMP		Auto	Hidden	;Derived from threshold and chargemult
+int		Property	RechargePR		Auto	Hidden
+int 	Property	ChargeTime		Auto	Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
 int		Property	DEFThreshhold	=	5	Autoreadonly
@@ -35,6 +35,7 @@ int		Property	DEFRechargePR	=	90	Autoreadonly
 int		Property	DEFChargeTime	=	120	Autoreadonly
 
 float	Property	SecondsInDay	=	86400.0		Autoreadonly
+
 String	Property	CastStop		=	"CastStop"	Autoreadonly
 String	Property	JumpDown		=	"JumpDown"	Autoreadonly
 
@@ -61,6 +62,15 @@ Event OnEffectFinish (Actor akTarget, Actor akCaster)
 	RechargeImod.remove()
 	parent.EffectFinish(akTarget, akCaster)
 EndEvent
+
+Function RestoreDefaultFields()
+	bBalanced	= True
+	Threshhold	= DEFThreshhold
+	Range		= DEFRange
+	RechargePR	= DEFRechargePR
+	ChargeTime	= DEFChargeTime
+	GetMagickaCost()
+EndFunction
 
 ;===============================================================================================================================
 ;====================================			States			================================================
@@ -298,7 +308,7 @@ Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu Listen
 		elseif aiButton == 9
 			MenuActive.SetValue(0)
 		elseif aiButton == 1	; Turn on Balanced (Magicka Based)
-			bBalanced = True
+			RestoreDefaultFields()
 		elseif aiButton == 2	; Turn off Balanced (Cooldown Based)
 			bBalanced = False
 		elseif aiButton == 3	; Set Cooldown length

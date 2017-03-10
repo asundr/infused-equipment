@@ -18,10 +18,10 @@ ImageSpaceModifier	property	DarkImodFX	Auto
 
 FormList	Property	SunAffectingWorldspaces	Auto  
 
-bool	Property	bBalanced		=	True	Auto	Hidden
+bool	Property	bBalanced		Auto	Hidden
 
-Float	Property	ChargeDistance	=	100.0	Auto	Hidden
-int		Property	ChargeTime		=	600		Auto	Hidden
+Float	Property	ChargeDistance	Auto	Hidden
+int		Property	ChargeTime		Auto	Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
 Float	Property	DEFChargeDistance	=	100.0	Autoreadonly	; in feet ; 2000.0
@@ -34,9 +34,9 @@ String	Property	ArrowFired	=	"attackStop"	Autoreadonly
 
 ;===========================================  Variables  ============================================================================>
 ImageSpaceModifier MyImageSpace = None
-bool bRecharged		= False
-bool bUseCharges	= True
-bool bUseTimer		= False
+bool bRecharged
+bool bUseCharges
+bool bUseTimer
 
 ;===============================================================================================================================
 ;====================================	    Maintenance			================================================
@@ -44,17 +44,17 @@ bool bUseTimer		= False
 
 Event OnEffectStart(Actor akTarget, Actor akCaster)
 	parent.EffectStart(akTarget, akCaster)
-	RegisterForDistanceTravelledEvent(ChargeDistance)
 	RegisterAbilityToAlias()
+	RegisterForDistanceTravelledEvent(ChargeDistance)
 EndEvent
 
 Function RestoreDefaultFields()
-	ChargeDistance = DEFChargeDistance
-	ChargeTime = DEFChargeTime
-	bBalanced = True
-	bRecharged = False
-	bUseCharges = True
-	bUseTimer = False
+	bBalanced		= True
+	bRecharged		= False
+	bUseCharges		= True
+	bUseTimer		= False
+	ChargeDistance	= DEFChargeDistance
+	ChargeTime		= DEFChargeTime
 EndFunction
 
 ;===============================================================================================================================
@@ -201,7 +201,6 @@ Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu Listen
 		elseif aiButton == 9	; Cancel menu
 			MenuActive.SetValue(0)
 		elseif aiButton == 1	; Turn on Balanced (Magicka Based)
-			bBalanced = True
 			RestoreDefaultFields()
 		elseif aiButton == 2	; Turn off Balanced (Cooldown Based)
 			bBalanced = False

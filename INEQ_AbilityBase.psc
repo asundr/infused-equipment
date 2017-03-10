@@ -1,10 +1,14 @@
 Scriptname INEQ_AbilityBase extends INEQ_EventListenerBase Hidden
 {Base object that disables/enables ability effects when un/equipping an infused item}
 
+;===========================================  Properties  ===========================================================================>
 Keyword			Property	KW_EnbaleAbility		Auto
 ReferenceAlias	Property	AbilityAliasProperties	Auto
 Actor			Property	SelfRef					Auto	Hidden
 ObjectReference	Property	EquipRef				Auto	Hidden
+;==========================================  Autoreadonly  ==========================================================================>
+
+;===========================================  Variables  ============================================================================>
 
 ;===============================================================================================================================
 ;====================================	    Maintenance			================================================
@@ -18,6 +22,17 @@ EndFunction
 Function EffectFinish(Actor akTarget, Actor akCaster)
 	UnregisterAbilityToAlias()
 	parent.EffectFinish(akTarget, akCaster)
+EndFunction
+
+; Placeholder
+Function RestoreDefaultFields()
+EndFunction
+
+; currently unused
+Function ResetState()
+	if !EquipRef.HasKeyword(KW_EnbaleAbility)
+		GoToState("Unequipped")
+	endif
 EndFunction
 
 ;===============================================================================================================================
@@ -84,12 +99,4 @@ EndFunction
 ; Menu palceholder - should be overriden by implementation of ability's menu
 Function AbilityMenu(INEQ_MenuButtonConditional Button, INEQ_ListenerMenu ListenerMenu, GlobalVariable MenuActive)
 	Debug.Trace(self+ " attempted to access non-existent ability menu")
-EndFunction
-;___________________________________________________________________________________________________________________________
-
-; currently unused
-Function ResetState()
-	if !EquipRef.HasKeyword(KW_EnbaleAbility)
-		GoToState("Unequipped")
-	endif
 EndFunction

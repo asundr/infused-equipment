@@ -11,12 +11,12 @@ Spell	Property	RechargeVisual	Auto
 Explosion	property	DLC1SC_LightningBoltImpactExplosion	Auto
 Explosion	property	DLC1VampDetectLifeExplosion			Auto
 
-bool	Property	bBalanced		=	True	Auto	Hidden
-bool	Property	bUseCharges		=	True	Auto	Hidden
-bool	Property	bUseTimer		=	False	Auto	Hidden
+bool	Property	bBalanced			Auto	Hidden
+bool	Property	bUseCharges			Auto	Hidden
+bool	Property	bUseTimer			Auto	Hidden
 
-Float	Property	ChargeDistance	=	100.0	Auto	Hidden			; in feet
-int		Property	ChargeTime		=	120		Auto	Hidden
+Float	Property	ChargeDistance		Auto	Hidden			; in feet
+int		Property	ChargeTime			Auto	Hidden
 
 ;==========================================  Autoreadonly  ==========================================================================>
 float	Property	DEFChargeDistance	=	2000.0		Autoreadonly
@@ -25,7 +25,7 @@ int		Property	DEFChargeTime		=	300			Autoreadonly
 String  Property	WeaponDrawn			=	"WeaponDraw"  	Autoreadonly		; Draw weapon
 
 ;===========================================  Variables  ============================================================================>
-bool bRecharged = False
+bool bRecharged
 
 ;===============================================================================================================================
 ;====================================	    Maintenance			================================================
@@ -43,11 +43,12 @@ Event OnPlayerLoadGame()
 EndEvent
 
 Function RestoreDefaultFields()
-	bBalanced	= True
-	bUseCharges	= True
-	bUseTimer	= False
-	bRecharged	= False
-	ChargeDistance = DEFChargeDistance
+	bBalanced		= True
+	bUseCharges		= True
+	bUseTimer		= False
+	bRecharged		= False
+	ChargeDistance	= DEFChargeDistance
+	ChargeTime		= DEFChargeTime
 EndFunction
 
 ;===============================================================================================================================

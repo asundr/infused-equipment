@@ -34,6 +34,7 @@ Message  	Property  	SelectAction  	Auto
 Message		Property	EquipSlotSelect	Auto
 Message		Property	AbilitySelect	Auto
 Message		Property	AbilityOptions	Auto
+Message		Property	ChargeOptions	Auto
 Message		Property	OtherOptions	Auto
 Message		Property	FullResetWarn	Auto
 
@@ -41,7 +42,10 @@ GlobalVariable	Property	CheatMode	Auto
 GlobalVariable	Property	MenuActive	Auto
 
 Quest	Property	MainQuest				Auto
-Quest	Property	INEQ__AbilitiesToPlayer	Auto
+Quest	Property	INEQ__Recharging		Auto
+
+Formlist	Property	RechargeQuestlist	Auto
+Formlist	Property	AbilityToPlayerList	Auto
 
 ;==========================================  Autoreadonly  ==========================================================================>
 float	Property	InfuseTimout	=	5.0	Autoreadonly
@@ -54,6 +58,7 @@ INEQ_MenuButtonConditional	Button
 INEQ_ListenerMenu			ListenerMenu
 
 INEQ_EquipmentScript[]		Equipment
+INEQ_RechargeBase[]			RechargeList
 
 ;===============================================================================================================================
 ;====================================	    Maintenance			================================================
@@ -64,6 +69,7 @@ Event OnInit()
 	Button = MainQuest as INEQ_MenuButtonConditional
 	ListenerMenu = MainQuest as INEQ_ListenerMenu
 	Equipment = new INEQ_EquipmentScript[8]
+	RechargeList = new INEQ_RechargeBase[16]
 	Equipment[0] = Alias_Sword001 	as INEQ_EquipmentScript
 	Equipment[1] = Alias_Dagger001 	as INEQ_EquipmentScript
 	Equipment[2] = Alias_Bow001 	as INEQ_EquipmentScript
@@ -72,6 +78,7 @@ Event OnInit()
 	Equipment[5] = Alias_Body001 	as INEQ_EquipmentScript
 	Equipment[6] = Alias_Hands001 	as INEQ_EquipmentScript
 	Equipment[7] = Alias_Feet001 	as INEQ_EquipmentScript
+	makeRechargeList()
 EndEvent
 
 Event OnPlayerLoadGame()
@@ -85,35 +92,90 @@ Function maintenance()
 		i -= 1
 		Equipment[i].maintenance()
 	endwhile
+	
+	makeRechargeList()
+EndFunction
+
+; Refresh Recharge alias list
+Function makeRechargeList()
+;	Alias ChargeAlias = INEQ__Recharging.getAlias(0)
+;	RechargeList[0] = (ChargeAlias as ReferenceAlias) as INEQ_RechargeBase
+;	Debug.Trace("Start Recharge list")
+;	int index = 2
+;	ChargeAlias = INEQ__Recharging.getAlias(index)
+;	while ChargeAlias
+;		Debug.Trace("Current Alias: " +((ChargeAlias as ReferenceAlias) as INEQ_RechargeBase).getName())
+;		RechargeList[index - 1] = (ChargeAlias as ReferenceAlias) as INEQ_RechargeBase
+;		index += 1
+;		ChargeAlias = INEQ__Recharging.getAlias(index)
+;	endwhile
+;	Debug.Trace("End Recharge list maker")
+	 
+	
+	INEQ_RechargeBase[] temp = new INEQ_RechargeBase[16]
+	int iList = RechargeQuestlist.GetSize()
+	int count = 0
+	while iList > 0
+		iList-=1
+		Quest  RechargeQuest = RechargeQuestlist.GetAt(iList) as Quest
+		if (RechargeQuest)
+			int iAlias = 0
+			ReferenceAlias ref = RechargeQuest.GetAlias(iAlias) as ReferenceAlias
+			while ( ref )
+				if ref != none && (ref as INEQ_RechargeBase).getName() != ""
+					temp[count] = ref as INEQ_RechargeBase
+					count += 1
+				endif
+				iAlias += 1
+				ref = RechargeQuest.GetAlias(iAlias) as ReferenceAlias
+			endwhile
+		endif
+	endwhile
+	RechargeList = temp
+	
+	String s = count + ": ["
+	int i = count	;RechargeList.length
+	While i > 0
+		i -= 1
+		if RechargeList[i]
+			s += RechargeList[i].GetName() + ", "
+		endif
+	endwhile
+	Debug.Trace(s + "]")
+	
 EndFunction
 
 ;===============================================================================================================================
-;====================================			States			================================================
+;====================================			Main			================================================
 ;================================================================================================
 
 Function MainMenu()
 	int aiButton
 	MenuActive.setValue(1)
-	While MenuActive.Value
+	while MenuActive.Value
 		aiButton = SelectAction.Show()
-		If aiButton == 0 			
+		if aiButton == 0
 			StartRegister()
 			MenuActive.setValue(0)
-		ElseIF aiButton == 1
+		elseif aiButton == 1
 			StartUnlocking()
-		ElseIf aiButton == 2 
+		elseif aiButton == 2
 			StartSelectAbilities()
-		ElseIf aiButton == 3 
+		elseif aiButton == 3
 			StartAbilityOptions()
-		ElseIf aiButton == 4
-			StartOtherOptions()
+		elseif aiButton == 4
+			StartChargeOptions()
 		elseif aiButton == 5
+			StartOtherOptions()
+		elseif aiButton == 6
 			MenuActive.setValue(0)
-		EndIf
-	EndWhile
+		endif
+	endwhile
 EndFunction
-;___________________________________________________________________________________________________________________________
 
+;===============================================================================================================================
+;====================================	  	  Register			================================================
+;================================================================================================
 
 State Register
 
@@ -121,16 +183,17 @@ State Register
 		Debug.Notification("Drop apparel or a weapon to infuse it")		
 		RegisterForSingleUpdate(InfuseTimout)
 	EndEvent
-	
+	;___________________________________________________________________________________________________________________________
+
 	Event OnUpdate()
 		if !isBusy
 			Debug.Notification("Infusion timed out")
 			GoToState("")
 		endif
 	EndEvent
+	;___________________________________________________________________________________________________________________________
 
 	Event OnItemRemoved(Form akBaseItem, int aiItemCount, ObjectReference akItemReference, ObjectReference akDestContainer)
-;		Debug.Notification("Item Dropped...")
 		isBusy = True
 		if 	(akBaseItem as Armor)
 			if akItemReference.HasKeyword(ArmorShield)
@@ -157,28 +220,31 @@ State Register
 ;				ForceRefIfActive(Alias_Staff001, akItemReference)
 			endif
 		endif
-		SelfRef.AddItem(akItemReference, 1, true)
+		SelfRef.AddItem(akItemReference, 1, True)
 		isBusy = False
 		UnregisterForUpdate()
 		GoToState("")
 	EndEvent
-	
+	;___________________________________________________________________________________________________________________________
+
 	Event OnEndState()
 		UnregisterForUpdate()
 	EndEvent
 
 EndState
+;___________________________________________________________________________________________________________________________
 
 function ForceRefIfActive(ReferenceAlias akEquipmentAlias, ObjectReference akItemReference)
-	if akEquipmentAlias.getReference()	;&& SelfRef.IsEquipped(akEquipmentAlias.GetRef().GetBaseObject() as Form)
-		SelfRef.UnequipItem(akEquipmentAlias.GetRef().GetBaseObject() as Form, 	FALSE, 	FALSE)
+	if akEquipmentAlias.getReference()
+		SelfRef.UnequipItem(akEquipmentAlias.GetRef().GetBaseObject() as Form, 	False, 	False)
 	endif
 	((akEquipmentAlias as ReferenceAlias) as INEQ_EquipmentScript).ChangeReference(akItemReference)
 	Debug.Notification("Item has been infused!")
 endFunction
 
-;___________________________________________________________________________________________________________________________
-
+;===============================================================================================================================
+;====================================	    Unlocking			================================================
+;================================================================================================
 State Unlocking
 	
 	Event OnBeginState()
@@ -200,9 +266,9 @@ State Unlocking
 	
 EndState
 
-;___________________________________________________________________________________________________________________________
-
-
+;===============================================================================================================================
+;====================================	   Select Abilities		================================================
+;================================================================================================
 State SelectAbilities
 
 	Event OnBeginState()
@@ -213,10 +279,10 @@ State SelectAbilities
 	;___________________________________________________________________________________________________________________________
 
 	; Menu for (de)acitvating available abilities. Shows 4  options at a time, pressing next (button 9) recursively calls itself at a later index
-	Function AbilitySelectMenu(INEQ_AbilityAliasProperties[] AbilityArray, int startIndex = 0, int index = 0);,  bool abMenu = True)
+	Function AbilitySelectMenu(INEQ_AbilityAliasProperties[] AbilityArray, int startIndex = 0, int index = 0)
 
 		; Iterates ability list to find 4 unlocked abilities from a given index
-		bool abMenu = True
+		
 		
 		int max = AbilityArray.length
 		INEQ_AbilityAliasProperties[] currAbilities = new INEQ_AbilityAliasProperties[4]
@@ -246,14 +312,16 @@ State SelectAbilities
 		endif
 		
 		int aiButton
+		bool abMenu = True
+		MenuActive.SetValue(1)
 		While abMenu && MenuActive.Value
 			Debug.MessageBox(messageText)
 			setButton(currAbilities, index  < max)
 			aiButton = AbilitySelect.Show()
-			if aiButton == 0
-				return	;Back Button
-			elseif aiButton == 9
-				AbilitySelectMenu(AbilityArray, index, index)	;Next Button
+			if aiButton == 0			;Back Button
+				abMenu = False	
+			elseif aiButton == 9		;Next Button
+				AbilitySelectMenu(AbilityArray, index, index)
 			elseif aiButton%2 == 1
 				currAbilities[(aiButton - 1)/2].DeactivateAbility()
 				Button.set(aiButton, false)
@@ -290,8 +358,9 @@ State SelectAbilities
 	
 EndState
 
-;___________________________________________________________________________________________________________________________
-
+;===============================================================================================================================
+;====================================	   Ability Options		================================================
+;================================================================================================
 State AbilityOptions
 
 	Event OnBeginState()
@@ -301,7 +370,7 @@ State AbilityOptions
 	EndEvent
 	;___________________________________________________________________________________________________________________________
 
-	Function AbilitySelectMenu(INEQ_AbilityAliasProperties[] AbilityArray, int startIndex = 0, int index = 0);,  bool abMenu = True)
+	Function AbilitySelectMenu(INEQ_AbilityAliasProperties[] AbilityArray, int startIndex = 0, int index = 0)
 		
 		;Iterate ability list to find 8 unlocked abilities from a given index
 		bool abMenu = True
@@ -338,9 +407,9 @@ State AbilityOptions
 			Debug.MessageBox(messageText)
 			setButton(currAbilities, index < max)
 			aiButton = AbilityOptions.Show()
-			if aiButton == 0
-				return	;Back
-			elseif aiButton == 9
+			if aiButton == 0		; Back
+				abMenu = False	
+			elseif aiButton == 9	; Cancel
 				AbilitySelectMenu(AbilityArray, index, index)
 			else
 				currAbilities[aiButton - 1].AbilityMenu(Button, ListenerMenu, MenuActive)
@@ -348,7 +417,7 @@ State AbilityOptions
 		endwhile
 		
 	EndFunction
-
+	;___________________________________________________________________________________________________________________________
 	
 	; Formats a Button to Display the options for accessing the Abilities options and a next buttton if necessary
 	Function setButton(INEQ_AbilityAliasProperties[] array, bool belowMax)
@@ -368,7 +437,87 @@ State AbilityOptions
 	
 EndState
 
-;___________________________________________________________________________________________________________________________
+;===============================================================================================================================
+;====================================	   Charge Options		================================================
+;================================================================================================
+State ChargeOptions
+
+	Event OnBeginState()
+		MenuActive.SetValue(1)
+		ChargeSelectMenu(RechargeList)
+		GoToState("")
+	EndEvent
+	;___________________________________________________________________________________________________________________________
+
+	Function ChargeSelectMenu(INEQ_RechargeBase[] RechargeArray, int startIndex = 0, int index = 0)
+	
+		int max = RechargeArray.length
+		INEQ_RechargeBase[] currRecharge = new INEQ_RechargeBase[8]
+		String messageText = ""
+		int count = 0
+		if RechargeArray[index] == none
+			index = max
+		endif
+		while index < max && count < 8
+			if RechargeArray[index].hasMenu()
+				currRecharge[count] = RechargeArray[index]
+				count += 1
+				messageText += (count)+ ") " +RechargeArray[index].getName()+ "\n"
+			endif
+			index += 1
+			
+			; b/c array size may be larger than number of filled elements
+			if RechargeArray[index] == none
+				index = max
+			endif
+		endwhile
+
+		; Notifies player if they don't have any abilities in that slot
+		if currRecharge[0] == none && startIndex == 0
+			Debug.Notification("You don't have any abilities of this type")
+			return
+		endif
+		
+		int aiButton
+		bool abMenu = True
+		MenuActive.SetValue(1)
+		while abMenu && MenuActive.Value
+			Debug.MessageBox(messageText)
+			setButtonRecharge(currRecharge, index  < max)
+			aiButton = ChargeOptions.Show()
+			if aiButton == 0
+				abMenu = False
+			elseif aiButton == 9
+				ChargeSelectMenu(RechargeArray, index, index)
+			else
+				currRecharge[aiButton - 1].ChargeMenu(Button, ListenerMenu, MenuActive)
+			endif
+		endwhile
+	
+	EndFunction
+	;___________________________________________________________________________________________________________________________
+
+	; Formats a Button to Display the options for accessing the Abilities options and a next buttton if necessary
+	Function setButtonRecharge(INEQ_RechargeBase[] array, bool belowMax)
+		Button.clear()
+		int index = array.length
+		while index > 0
+			index -= 1
+			if array[index] != none
+				Button.Set(index + 1)
+			endif
+		endwhile
+		
+		if belowMax	;Enable next button if list isn't finished
+			Button.Set(9)
+		endif
+	EndFunction
+	
+EndState
+
+;===============================================================================================================================
+;====================================	   Other Options		================================================
+;================================================================================================
 
 State OtherOptions
 
@@ -377,57 +526,55 @@ State OtherOptions
 		MenuActive.SetValue(1)
 		int aiButton = 0
 
-		While abMenu && MenuActive.Value
-			If aiButton != -1 			; Wait for input (this can prevent problems if recycling the aiButton argument in submenus)
-				aiButton = OtherOptions.Show() ; Main Menu
+		while abMenu && MenuActive.Value
+			aiButton = OtherOptions.Show()	; Main Menu
+			if aiButton == 0
+				abMenu = False				; back button
+			elseif aiButton == 1
+				ActivateAll()
+				Debug.Notification("All available abilities have been activated")
+			elseif aiButton == 2
+				DeactivateAll()
+				Debug.Notification("All abilities have been deactivated")
+			elseif aiButton == 3
+				RestoreDefaultsAll()
+				Debug.Notification("Defaults have been restored")
+			elseif aiButton == 4
+				aiButton = FullResetWarn.Show()
 				if aiButton == 0
-					abMenu = False	; back button
+					FullResetAll(True)
+					Debug.Notification("All abilities have been completely reset and must be unlocked again")
 				elseif aiButton == 1
-					ActivateAllAvailable()
-					Debug.Notification("All available abilities have been activated")
-				elseIf aiButton == 2
-					DeactivateAll()
-					Debug.Notification("All abilities have been deactivated")
-				elseif aiButton == 3
-					maintenance()
-					Debug.Notification("Ability arrays have been updated")
-				ElseIF aiButton == 4
-					aiButton = FullResetWarn.Show()
-					if aiButton == 0
-						CheatMode.value = 0
-						FullResetAll()
-;						INEQ__AbilitiesToPlayer.stop()		; testing to apply edits to aliases, see AttemptFullReset in EquipmentScript for more
-;						INEQ__AbilitiesToPlayer.start()
-;						
-;						Alias_Sword001.GetOwningQuest().stop()
-;						Alias_Sword001.GetOwningQuest().start()
-						
-						Debug.Notification("All abilities have been completely reset and must be unlocked again")
-					endif
-				ElseIf aiButton == 5 
-					CheatMode.value = 1
-					Debug.Notification("Cheat mode activated")
-				ElseIf aiButton == 6 
-					CheatMode.value = 0
-					DeactivateAll(True)
-					Debug.MessageBox("Stop right there criminal scum! Nobody cheats on my watch! I'm confiscating your stolen abilities! Now earn them properly or its off to jail.")
-				EndIf
-			EndIf
-		EndWhile
+					FullResetAll()
+					Debug.Notification("Everything except for learned abilities has been reset")
+				endif
+			elseif aiButton == 5 
+				CheatMode.value = 1
+				Debug.Notification("Cheat mode activated")
+			elseif aiButton == 6 
+				CheatMode.value = 0
+				DeactivateAll(True)
+				Debug.Notification("Cheat mode deactivated")
+			endif
+		endwhile
 		MenuActive.setValue(1)
 		GoToState("")
 	EndEvent
 
 EndState
+;___________________________________________________________________________________________________________________________
 
-function ActivateAllAvailable()
+; Activates all unlocked or cheated abilities
+Function ActivateAll()
 	int index = Equipment.length
 	while index > 0
 		index -= 1
 		Equipment[index].AttemptActivate()
 	endwhile
-endFunction
+EndFunction
+;___________________________________________________________________________________________________________________________
 
+; Deactivates all activated abilities
 function DeactivateAll(bool cheated = False)
 	int index = Equipment.length
 	while index > 0
@@ -435,14 +582,81 @@ function DeactivateAll(bool cheated = False)
 		Equipment[index].AttemptDeactivate(cheated)
 	endwhile
 endFunction
+;___________________________________________________________________________________________________________________________
 
-function FullResetAll()
-	int index = Equipment.length
+; Resets all properties in Recharge sources and Abilities
+Function RestoreDefaultsAll()
+	int index = RechargeList.length
 	while index > 0
 		index -= 1
-		Equipment[index].AttemptFullReset()
+		if RechargeList[index]
+			RechargeList[index].RestoreDefaultFields()
+		endif
 	endwhile
+	
+	index = Equipment.length
+	while index > 0
+		index -= 1
+		Equipment[index].RestoreDefaultFields()
+	endwhile
+EndFunction
+;___________________________________________________________________________________________________________________________
+
+function FullResetAll(bool bLock = False)
+	CheatMode.SetValue(0)
+	
+	formlist[] EquipmentQuests = new formlist[8]
+	int i = Equipment.length
+	while i > 0
+		i -= 1
+		EquipmentQuests[i] = Equipment[i].AbilityQuestList
+		Equipment[i].FullReset(bLock)
+		Equipment[i].clear()
+	endwhile
+	
+	RestoreDefaultsAll()
+	
+	Alias_Sword001.GetOwningQuest().stop()
+
+	i = EquipmentQuests.length
+	while i > 0
+		i -= 1
+		StopQuestFormlist(EquipmentQuests[i])
+	endwhile
+	
+	StopQuestFormlist(AbilityToPlayerList)
+	StopQuestFormlist(RechargeQuestlist)
+	
+	StartQuestFormList(RechargeQuestlist)
+	StartQuestFormlist(AbilityToPlayerList)
+	
+	i = EquipmentQuests.length
+	while i > 0
+		i -= 1
+		StartQuestFormlist(EquipmentQuests[i])
+	endwhile
+	
+	Alias_Sword001.GetOwningQuest().start()
 endFunction
+;___________________________________________________________________________________________________________________________
+
+Function StopQuestFormlist(Formlist list)
+	int i = list.GetSize()
+	while i > 0
+		i -= 1
+		(list.GetAt(i) as Quest).Stop()
+	endwhile
+EndFunction
+;___________________________________________________________________________________________________________________________
+
+Function StartQuestFormlist(Formlist list)
+	int i = 0
+	int max = list.GetSize()
+	while i < max
+		(list.GetAt(i) as Quest).Start()
+		i += 1
+	endwhile
+EndFunction
 
 ;===============================================================================================================================
 ;====================================		Shared Functions		================================================
@@ -453,14 +667,14 @@ Function EquipmentSlotMenu()
 	bool abMenu = True
 	int aiButton
 	While abMenu && MenuActive.Value
-		aiButton = EquipSlotSelect.Show() ; Main Menu
-		if aiButton == 0		;back return
+		aiButton = EquipSlotSelect.Show()
+		if aiButton == 0		; back
 			abMenu = False
-		elseif aiButton == 9	;cancel
+		elseif aiButton == 9	; cancel
 			MenuActive.SetValue(0)
 		else
 			AbilitySelectMenu(Equipment[aiButton - 1].AbilityAliasArray)
-		EndIf
+		endif
 	EndWhile
 EndFunction
 
@@ -470,7 +684,15 @@ Function AbilitySelectMenu(INEQ_AbilityAliasProperties[] AbilityArray, int start
 	Debug.Trace(self+ " accessed AbilitySelectMenu() in the Empty State")
 EndFunction
 
+Function ChargeSelectMenu(INEQ_RechargeBase[] RegisterArray, int startIndex = 0, int index = 0)
+	Debug.Trace(self+ " accessed ChargeSelectMenu() in Empty state")
+EndFunction
+
 Function SetButton(INEQ_AbilityAliasProperties[] array, bool belowMax)
+	Debug.Trace(self+ " accessed SetButton() in the Empty State")
+EndFunction
+
+Function setButtonRecharge(INEQ_RechargeBase[] array, bool belowMax)
 	Debug.Trace(self+ " accessed SetButton() in the Empty State")
 EndFunction
 
@@ -490,6 +712,10 @@ endFunction
 
 Function StartAbilityOptions()
 	GoToState("AbilityOptions")
+EndFunction
+
+Function StartChargeOptions()
+	GoToState("ChargeOptions")
 EndFunction
 
 Function StartOtherOptions()
