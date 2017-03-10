@@ -128,6 +128,7 @@ endfunction
 
 ; Fully clear all aliases, reset unlocks and activations to false
 Function FullReset(bool bLock = False)
+	Clear()
 	int index = AbilityAliasArray.length
 	while index > 0
 		index -= 1
@@ -136,4 +137,3 @@ Function FullReset(bool bLock = False)
 		endif
 	endwhile
 EndFunction
-
